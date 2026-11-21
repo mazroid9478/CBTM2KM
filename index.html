@@ -1,0 +1,1287 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CBT ONLINE MAZRO — Ujian Informatika &amp; Berpikir Komputasional</title>
+    <meta
+      name="description"
+      content="Aplikasi ujian berbasis komputer (CBT) mata pelajaran Informatika dan Berpikir Komputasional menggunakan HTML, CSS, dan JavaScript dengan Local Storage."
+    />
+    <meta property="og:title" content="CBT ONLINE MAZRO" />
+    <meta
+      property="og:description"
+      content="Aplikasi ujian berbasis komputer (CBT) mata pelajaran Informatika dan Berpikir Komputasional menggunakan HTML, CSS, dan JavaScript dengan Local Storage."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <!-- Top Bar Navigation (3-Zone Contract) -->
+    <header class="topbar" id="app-header">
+      <div class="topbar-inner">
+        <!-- Zone 1: Brand Title -->
+        <a href="#top" class="brand-wordmark" id="brand-home-link">
+          <svg
+            class="brand-icon"
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="3" y="4" width="18" height="14" rx="2"></rect>
+            <path d="M8 21h8"></path>
+            <path d="M12 18v3"></path>
+            <path d="M8 10l2.5 2L8 14"></path>
+            <path d="M13 14h3"></path>
+          </svg>
+          <span>CBT ONLINE MAZRO</span>
+        </a>
+
+        <!-- Zone 2: Concise Single-Line Navigation Links -->
+        <nav class="topbar-nav" id="topbar-nav" aria-label="Navigasi Utama">
+          <button type="button" class="nav-link" data-nav="login" id="nav-login">Masuk Siswa</button>
+          <button type="button" class="nav-link hidden" data-nav="dashboard" id="nav-dashboard">Dashboard</button>
+          <button type="button" class="nav-link hidden" data-nav="exam" id="nav-exam">Ujian Aktif</button>
+          <button type="button" class="nav-link" data-nav="admin" id="nav-admin">Portal Admin</button>
+        </nav>
+
+        <!-- Zone 3: Single Primary Action -->
+        <div class="topbar-action">
+          <button type="button" class="btn btn-outline btn-sm" id="topbar-primary-btn">
+            Portal Admin
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-main" id="top">
+      <!-- ==================== VIEW 1: LOGIN ==================== -->
+      <section class="view active" id="view-login" aria-labelledby="login-heading">
+        <div class="container login-grid">
+          <div class="login-hero">
+            <p class="kicker">Evaluasi Digital Terpadu M2KM · Tahun Ajaran 2026/2027</p>
+            <h1 class="hero-title" id="login-heading">
+              Ujian Online Informatika dan Berpikir Komputasional
+            </h1>
+            <p class="hero-subtitle">
+              Platform Computer Based Test (CBT) yang dirancang untuk mengukur pemahaman konsep keilmuan Informatika, keterampilan generik, serta penerapan algoritma pencarian, pengurutan, tumpukan, dan antrean.
+            </p>
+
+            <div class="syllabus-card">
+              <div class="syllabus-header">
+                <h2 class="section-label">Cakupan Materi Ujian</h2>
+                <span class="meta-text" id="login-question-count">65 Butir Soal · 120 Menit</span>
+              </div>
+              <ul class="syllabus-list" id="login-syllabus-list">
+                <li>Apa Itu Informatika dan delapan pilar keilmuannya</li>
+                <li>Keterampilan Generik dalam kolaborasi dan komunikasi digital</li>
+                <li>Fondasi Berpikir Komputasional: Dekomposisi, Pola, Abstraksi, Algoritma</li>
+                <li>Algoritma Pencarian (Linear Search &amp; Binary Search)</li>
+                <li>Algoritma Pengurutan (Bubble, Insertion, dan Selection Sort)</li>
+                <li>Struktur Data Tumpukan (Stack) dan Antrean (Queue)</li>
+              </ul>
+            </div>
+
+            <div class="feature-strip">
+              <div class="feature-item">
+                <span class="feature-value">Sebelum Mulai Tes</span>
+                <span class="feature-desc">Silahkan untuk Berdoa Bersama-sama</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="login-card card">
+            <div class="card-header">
+              <h2 class="card-title">Identitas Peserta Ujian</h2>
+              <p class="card-desc">Lengkapi seluruh data diri berikut sebelum memasuki ruang tes. Peserta yang sudah masuk tidak dapat login kembali.</p>
+            </div>
+
+            <form id="login-form" class="form-stack" novalidate>
+              <div class="form-group">
+                <label for="input-nama" class="form-label">Nama Lengkap Siswa</label>
+                <input
+                  type="text"
+                  id="input-nama"
+                  name="nama"
+                  class="form-input"
+                  placeholder="Contoh: Ahmad Fauzan Pratama"
+                  autocomplete="name"
+                  required
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="input-username" class="form-label">Username</label>
+                <input
+                  type="text"
+                  id="input-username"
+                  name="username"
+                  class="form-input"
+                  placeholder="Nama Panggilan ahmad"
+                  autocomplete="username"
+                  required
+                />
+              </div>
+
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="input-nisn" class="form-label">Kelas</label>
+                  <input
+                    type="text"
+                    id="input-nisn"
+                    name="nisn"
+                    class="form-input mono-input"
+                    placeholder="Contoh: X-K"
+                    inputmode="text"
+                    maxlength="16"
+                    required
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="input-absen" class="form-label">Nomor Absen Siswa</label>
+                  <input
+                    type="number"
+                    id="input-absen"
+                    name="absen"
+                    class="form-input mono-input"
+                    placeholder="Contoh: 12"
+                    min="1"
+                    max="999"
+                    inputmode="numeric"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div class="form-group" id="login-token-group">
+                <div class="token-label-row">
+                  <label for="input-token" class="form-label">Token Ujian</label>
+                  <span class="token-active-hint mono-text" id="login-token-hint">Token Aktif: ------</span>
+                </div>
+                <input
+                  type="text"
+                  id="input-token"
+                  name="token"
+                  class="form-input mono-input token-input"
+                  placeholder="Masukkan kode Token Ujian"
+                  maxlength="16"
+                  autocomplete="off"
+                  required
+                />
+                <p class="field-hint hidden" id="login-token-stopped-note"></p>
+              </div>
+
+              <p class="form-error hidden" id="login-error" role="alert"></p>
+
+              <button type="submit" class="btn btn-primary btn-full" id="btn-login-submit">
+                <span>Masuk ke Dashboard</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M5 12h14"></path>
+                  <path d="m12 5 7 7-7 7"></path>
+                </svg>
+              </button>
+            </form>
+
+            <div class="card-divider"></div>
+
+            <div class="login-footer-row">
+              <span class="meta-text"></span>
+              <button type="button" class="text-link" id="btn-open-admin-from-login">
+                Masuk sebagai Admin
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW 2: DASHBOARD ==================== -->
+      <section class="view" id="view-dashboard" aria-labelledby="dashboard-heading">
+        <div class="container dashboard-container">
+          <div class="dashboard-header-card card">
+            <div class="dashboard-welcome">
+              <p class="kicker">Ruang Persiapan Ujian · Peserta Terverifikasi</p>
+              <h1 class="dashboard-title" id="dashboard-heading">
+                Selamat Datang, <span id="dash-nama">-</span>
+              </h1>
+              <div class="meta-inline">
+                <span>Kelas: <strong class="mono-text" id="dash-nisn">-</strong></span>
+                <span aria-hidden="true">·</span>
+                <span>No. Absen: <strong class="mono-text" id="dash-absen">-</strong></span>
+                <span aria-hidden="true">·</span>
+                <span>Username: <strong id="dash-username">-</strong></span>
+              </div>
+            </div>
+            <div class="dashboard-header-actions">
+              <button type="button" class="btn btn-outline" id="btn-logout-student">
+                Ganti Akun
+              </button>
+            </div>
+          </div>
+
+          <div class="dashboard-grid">
+            <div class="card exam-info-card">
+              <div class="card-header">
+                <h2 class="card-title">Informasi Paket Ujian</h2>
+                <p class="card-desc">Periksa detail mata pelajaran dan ketentuan pengerjaan sebelum memulai.</p>
+              </div>
+
+              <dl class="info-spec-list">
+                <div class="info-spec-row">
+                  <dt>Mata Pelajaran</dt>
+                  <dd class="spec-highlight" id="dash-subject">INFORMATIKA</dd>
+                </div>
+                <div class="info-spec-row">
+                  <dt>Materi Pokok</dt>
+                  <dd id="dash-main-topic">Informatika &amp; Ketrampilan Umum Serta Berpikir Komputasional</dd>
+                </div>
+                <div class="info-spec-row">
+                  <dt>Jumlah Soal</dt>
+                  <dd class="tabular-nums"><strong id="dash-total-soal">65</strong> Butir Soal</dd>
+                </div>
+                <div class="info-spec-row">
+                  <dt>Waktu Ujian</dt>
+                  <dd class="tabular-nums"><strong id="dash-duration">120 Menit</strong> (Hitung Mundur Otomatis)</dd>
+                </div>
+                <div class="info-spec-row">
+                  <dt>Kriteria Ketuntasan</dt>
+                  <dd class="tabular-nums">Nilai Minimum <strong>75</strong> (Lulus ≥ 75)</dd>
+                </div>
+              </dl>
+
+              <div class="type-breakdown" id="dash-type-breakdown">
+                <!-- Populated dynamically by script.js -->
+              </div>
+            </div>
+
+            <div class="card start-action-card">
+              <div class="card-header">
+                <h2 class="card-title">Ketentuan &amp; Kesiapan Tes</h2>
+              </div>
+
+              <ul class="rules-list">
+                
+                <li>Setiap jawaban yang Anda pilih langsung tersimpan otomatis di perangkat.</li>
+                <li>Anda dapat berpindah bebas antar nomor soal melalui tombol navigasi atau panel nomor.</li>
+                
+              </ul>
+
+              <div id="dash-completed-notice" class="resume-notice hidden">
+                <p>
+                  Ujian untuk identitas peserta ini sudah diselesaikan dan dikumpulkan. Peserta tidak dapat mengulang tes atau login kembali.
+                </p>
+              </div>
+
+              <div id="dash-resume-notice" class="resume-notice hidden">
+                <p>
+                  Ditemukan sesi ujian yang belum selesai (<strong id="dash-resume-answered">0</strong> soal terjawab). Anda dapat melanjutkan sesi tersebut atau memulai ulang dari awal.
+                </p>
+              </div>
+
+              <div class="start-btn-group">
+                <button type="button" class="btn btn-primary btn-lg btn-full" id="btn-start-exam">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                  <span id="btn-start-exam-label">Mulai Tes</span>
+                </button>
+                <button type="button" class="btn btn-outline btn-full hidden" id="btn-reset-session">
+                  Mulai Ulang Sesi Baru
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW 3: EXAM ==================== -->
+      <section class="view" id="view-exam" aria-label="Ruang Ujian CBT">
+        <div class="exam-sticky-bar">
+          <div class="container exam-bar-inner">
+            <div class="exam-bar-student">
+              <span class="exam-student-name" id="exam-student-name">Peserta</span>
+              <span class="meta-text tabular-nums" id="exam-student-nisn">Kelas -</span>
+            </div>
+
+            <div class="exam-progress-wrap">
+              <div class="exam-progress-labels">
+                <span>Progres Pengerjaan</span>
+                <span class="tabular-nums" id="exam-progress-text">0 / 65 Terjawab (0%)</span>
+              </div>
+              <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="exam-progress-bar-wrap">
+                <div class="progress-fill" id="exam-progress-fill" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <div class="exam-bar-right">
+              <div class="timer-box" id="exam-timer-box" aria-live="polite">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span class="timer-label" id="exam-timer-status">Sisa Waktu</span>
+                <span class="timer-digits tabular-nums" id="exam-timer-display">120:00</span>
+              </div>
+              <button type="button" class="btn btn-primary btn-sm" id="btn-finish-exam-top">
+                Selesai
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="container exam-workspace">
+          <!-- Left: Question Stage -->
+          <div class="exam-stage">
+            <article class="card question-card" id="question-card">
+              <div class="question-meta-row">
+                <div class="question-meta-left">
+                  <span class="question-number-label tabular-nums" id="q-number-label">Soal 1 dari 65</span>
+                  <span aria-hidden="true" class="meta-sep">·</span>
+                  <span class="question-type-label" id="q-type-label">Pilihan Ganda</span>
+                  <span aria-hidden="true" class="meta-sep">·</span>
+                  <span class="question-topic-label" id="q-topic-label">Informatika</span>
+                </div>
+                <button type="button" class="btn-flag" id="btn-flag-question" aria-pressed="false">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+                    <line x1="4" y1="22" x2="4" y2="15"></line>
+                  </svg>
+                  <span>Ragu-ragu</span>
+                </button>
+              </div>
+
+              <div class="question-body" id="question-animated-body">
+                <p class="question-instruction hidden" id="q-instruction"></p>
+                <h2 class="question-text" id="q-text">Memuat soal...</h2>
+                <div class="answer-area" id="q-answer-area">
+                  <!-- Rendered dynamically based on question type -->
+                </div>
+              </div>
+
+              <div class="question-footer">
+                <button type="button" class="btn btn-outline" id="btn-prev-question">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m15 18-6-6 6-6"></path>
+                  </svg>
+                  <span>Sebelumnya</span>
+                </button>
+
+                <span class="autosave-hint" id="autosave-hint">Tersimpan otomatis</span>
+
+                <div class="question-footer-right">
+                  <button type="button" class="btn btn-primary" id="btn-next-question">
+                    <span>Berikutnya</span>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="m9 18 6-6-6-6"></path>
+                    </svg>
+                  </button>
+                  <button type="button" class="btn btn-success hidden" id="btn-submit-exam-last">
+                    <span>Selesai &amp; Kumpulkan</span>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="20 6 9 17 4 12"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <!-- Right: Question Navigator Sidebar -->
+          <aside class="exam-sidebar" aria-label="Navigasi Nomor Soal">
+            <div class="card navigator-card">
+              <div class="navigator-header">
+                <h3 class="navigator-title">Navigasi Nomor Soal</h3>
+                <span class="meta-text tabular-nums" id="nav-summary-count">0/65</span>
+              </div>
+
+              <div class="navigator-legend">
+                <span class="legend-item"><i class="legend-box is-answered"></i> Terjawab</span>
+                <span class="legend-item"><i class="legend-box is-flagged"></i> Ragu</span>
+                <span class="legend-item"><i class="legend-box is-empty"></i> Belum</span>
+              </div>
+
+              <div class="navigator-grid" id="question-navigator-grid">
+                <!-- Number buttons 1..N generated by script.js -->
+              </div>
+
+              <div class="navigator-footer">
+                <button type="button" class="btn btn-primary btn-full" id="btn-finish-exam-sidebar">
+                  Kumpulkan Ujian
+                </button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW 3B: EXAM SUBMITTED (STUDENT) ==================== -->
+      <section class="view" id="view-submitted" aria-labelledby="submitted-heading">
+        <div class="container submitted-container">
+          <div class="card submitted-card">
+            <div class="submitted-icon-box" aria-hidden="true">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <p class="kicker">Konfirmasi Pengumpulan Ujian · CBT ONLINE MAZRO</p>
+            <h1 class="submitted-title" id="submitted-heading">Ujian Telah Diselesaikan</h1>
+            <p class="submitted-subtitle">
+              Terima kasih, jawaban Anda telah berhasil disimpan dan direkam ke sistem evaluasi.
+            </p>
+
+            <dl class="submitted-meta-grid">
+              <div>
+                <dt>Nama Siswa</dt>
+                <dd id="sub-nama">-</dd>
+              </div>
+              <div>
+                <dt>Kelas</dt>
+                <dd class="mono-text" id="sub-nisn">-</dd>
+              </div>
+              <div>
+                <dt>Nomor Absen Siswa</dt>
+                <dd class="mono-text" id="sub-absen">-</dd>
+              </div>
+              <div>
+                <dt>Nomor Urut Pengumpulan</dt>
+                <dd class="mono-text" id="sub-nomor-urut">#1</dd>
+              </div>
+              <div>
+                <dt>Mata Pelajaran</dt>
+                <dd>INFORMATIKA</dd>
+              </div>
+              <div>
+                <dt>Soal Terjawab</dt>
+                <dd class="tabular-nums" id="sub-answered">0 / 65</dd>
+              </div>
+              <div>
+                <dt>Waktu Selesai</dt>
+                <dd class="tabular-nums" id="sub-timestamp">-</dd>
+              </div>
+            </dl>
+
+            <div class="submitted-notice">
+              Selamat Ananda Telah Menyelesaikan Ujian CBT Online. Semoga Mendapatkan Nilai Hasil Terbaik. Aamiin.
+            </div>
+
+            <div class="submitted-actions">
+              <button type="button" class="btn btn-outline" id="btn-submitted-dashboard">
+                Kembali ke Dashboard
+              </button>
+              <button type="button" class="btn btn-primary" id="btn-submitted-logout">
+                Selesai &amp; Keluar Akun
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW 4: RESULT (ADMIN PORTAL) ==================== -->
+      <section class="view" id="view-result" aria-labelledby="result-heading">
+        <div class="container result-container">
+          <div class="result-top-actions no-print">
+            <button type="button" class="btn btn-outline hidden" id="btn-result-back-admin">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m15 18-6-6 6-6"></path>
+              </svg>
+              <span>Kembali ke Portal Admin</span>
+            </button>
+            <div class="result-action-buttons">
+              <button type="button" class="btn btn-outline" id="btn-print-result">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+                <span>Cetak Hasil</span>
+              </button>
+              <button type="button" class="btn btn-outline" id="btn-download-pdf">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span>Unduh PDF</span>
+              </button>
+              <button type="button" class="btn btn-primary" id="btn-retake-test">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                  <path d="M3 3v5h5"></path>
+                </svg>
+                <span>Ulangi Tes</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Printable Report Header -->
+          <div class="card result-hero-card">
+            <div class="result-identity-block">
+              <p class="kicker">Laporan Hasil Evaluasi · CBT ONLINE MAZRO</p>
+              <h1 class="result-title" id="result-heading">Hasil Ujian Informatika</h1>
+
+              <dl class="result-identity-grid">
+                <div>
+                  <dt>Nama Siswa</dt>
+                  <dd id="res-nama">-</dd>
+                </div>
+                <div>
+                  <dt>Kelas</dt>
+                  <dd class="mono-text" id="res-nisn">-</dd>
+                </div>
+                <div>
+                  <dt>Nomor Absen Siswa</dt>
+                  <dd class="mono-text" id="res-absen">-</dd>
+                </div>
+                <div>
+                  <dt>Nomor Urut</dt>
+                  <dd class="mono-text" id="res-nomor-urut">#1</dd>
+                </div>
+                <div>
+                  <dt>Mata Pelajaran</dt>
+                  <dd>INFORMATIKA</dd>
+                </div>
+                <div>
+                  <dt>Materi</dt>
+                  <dd>Informatika &amp; Ketrampilan Umum Serta Berpikir Komputasional</dd>
+                </div>
+                <div>
+                  <dt>Waktu Selesai</dt>
+                  <dd class="tabular-nums" id="res-timestamp">-</dd>
+                </div>
+              </dl>
+            </div>
+
+            <div class="result-score-panel">
+              <span class="score-caption">Nilai Akhir</span>
+              <div class="score-big-number tabular-nums" id="res-score">0</div>
+              <div class="status-indicator" id="res-status-box">
+                <span id="res-status-text">Belum Lulus</span>
+              </div>
+              <div class="score-submetrics tabular-nums">
+                <div>
+                  <span>Benar</span>
+                  <strong id="res-correct">0</strong>
+                </div>
+                <div>
+                  <span>Salah</span>
+                  <strong id="res-wrong">0</strong>
+                </div>
+                <div>
+                  <span>Persentase</span>
+                  <strong id="res-percent">0%</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bar Chart Card -->
+          <div class="card chart-card">
+            <div class="card-header">
+              <h2 class="card-title">Diagram Batang Hasil Nilai</h2>
+              <p class="card-desc">Visualisasi perbandingan capaian nilai, jawaban benar/salah, dan persentase penguasaan per sub-materi.</p>
+            </div>
+            <div class="charts-grid">
+              <div class="chart-panel">
+                <h3 class="chart-subtitle">Ringkasan Skor &amp; Ketuntasan</h3>
+                <canvas id="chart-summary" width="520" height="260" aria-label="Diagram batang ringkasan nilai"></canvas>
+              </div>
+              <div class="chart-panel">
+                <h3 class="chart-subtitle">Capaian per Materi (%)</h3>
+                <canvas id="chart-topics" width="600" height="260" aria-label="Diagram batang capaian per materi"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Answer Summary -->
+          <div class="card summary-card">
+            <div class="summary-header">
+              <div>
+                <h2 class="card-title">Ringkasan Jawaban</h2>
+                <p class="card-desc">Tinjauan butir soal, jawaban peserta, dan kunci jawaban yang benar.</p>
+              </div>
+              <div class="segmented-control no-print" role="group" aria-label="Filter ringkasan jawaban">
+                <button type="button" class="seg-btn active" data-res-filter="all">Semua</button>
+                <button type="button" class="seg-btn" data-res-filter="correct">Benar</button>
+                <button type="button" class="seg-btn" data-res-filter="wrong">Salah</button>
+              </div>
+            </div>
+            <div class="summary-list" id="result-summary-list">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW 5: ADMIN ==================== -->
+      <section class="view" id="view-admin" aria-labelledby="admin-heading">
+        <div class="container admin-container">
+          <div class="card admin-header-card">
+            <div>
+              <p class="kicker">Panel Pengajar &amp; Administrator · CBT ONLINE MAZRO</p>
+              <h1 class="admin-title" id="admin-heading">Manajemen Bank Soal &amp; Hasil Penilaian</h1>
+            </div>
+            <div class="admin-header-actions">
+              <div class="segmented-control" role="tablist" aria-label="Menu Admin">
+                <button type="button" class="seg-btn active" role="tab" aria-selected="true" data-admin-tab="results" id="tab-btn-results">
+                  Hasil Penilaian
+                </button>
+                <button type="button" class="seg-btn" role="tab" aria-selected="false" data-admin-tab="monitoring" id="tab-btn-monitoring">
+                  Monitoring Siswa
+                </button>
+                <button type="button" class="seg-btn" role="tab" aria-selected="false" data-admin-tab="questions" id="tab-btn-questions">
+                  Bank Soal
+                </button>
+                <button type="button" class="seg-btn" role="tab" aria-selected="false" data-admin-tab="syllabus" id="tab-btn-syllabus">
+                  Cakupan Materi
+                </button>
+                <button type="button" class="seg-btn" role="tab" aria-selected="false" data-admin-tab="token" id="tab-btn-token">
+                  Token Ujian
+                </button>
+              </div>
+              <button type="button" class="btn btn-outline" id="btn-exit-admin">
+                Keluar Admin
+              </button>
+            </div>
+          </div>
+
+          <!-- Admin Tab 1: Hasil Penilaian & Akses Halaman Hasil -->
+          <div class="admin-tab-panel active" id="admin-panel-results">
+            <div class="admin-kpi-grid" id="admin-kpi-grid">
+              <div class="card kpi-card">
+                <span class="kpi-label">Total Peserta Selesai</span>
+                <strong class="kpi-value tabular-nums" id="kpi-total-peserta">0</strong>
+              </div>
+              <div class="card kpi-card">
+                <span class="kpi-label">Rata-rata Nilai</span>
+                <strong class="kpi-value tabular-nums" id="kpi-avg-score">0</strong>
+              </div>
+              <div class="card kpi-card">
+                <span class="kpi-label">Peserta Lulus (≥75)</span>
+                <strong class="kpi-value tabular-nums" id="kpi-pass-count">0</strong>
+              </div>
+              <div class="card kpi-card">
+                <span class="kpi-label">Tingkat Kelulusan</span>
+                <strong class="kpi-value tabular-nums" id="kpi-pass-rate">0%</strong>
+              </div>
+            </div>
+
+            <div class="card admin-table-card">
+              <div class="admin-toolbar">
+                <div>
+                  <h2 class="card-title">Daftar Hasil Penilaian Siswa</h2>
+                  <p class="card-desc">Klik "Lihat Halaman Hasil" pada baris siswa untuk membuka laporan nilai, diagram batang, dan unduh PDF.</p>
+                </div>
+                <div class="admin-toolbar-controls">
+                  <input
+                    type="search"
+                    id="admin-result-search"
+                    class="form-input input-compact"
+                    placeholder="Cari nama atau kelas..."
+                    aria-label="Cari hasil siswa"
+                  />
+                  <button type="button" class="btn btn-outline btn-sm" id="btn-export-results-csv">
+                    Ekspor CSV (Spreadsheet)
+                  </button>
+                  <button type="button" class="btn btn-primary btn-sm" id="btn-export-results-xls">
+                    Ekspor Excel (.xls)
+                  </button>
+                  <button type="button" class="btn btn-outline btn-sm" id="btn-reset-login-locks">
+                    Reset Akses Login
+                  </button>
+                  <button type="button" class="btn btn-outline btn-sm btn-danger-outline" id="btn-clear-results">
+                    Hapus Semua Hasil
+                  </button>
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="data-table" id="admin-results-table">
+                  <thead>
+                    <tr>
+                      <th>No. Urut</th>
+                      <th>Nama Siswa</th>
+                      <th>Kelas</th>
+                      <th>No. Absen</th>
+                      <th>Skor</th>
+                      <th>Benar</th>
+                      <th>Salah</th>
+                      <th>Persentase</th>
+                      <th>Status</th>
+                      <th>Halaman Hasil</th>
+                    </tr>
+                  </thead>
+                  <tbody id="admin-results-tbody">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Admin Tab 1B: Monitoring Progres Pengerjaan Per Siswa -->
+          <div class="admin-tab-panel" id="admin-panel-monitoring">
+            <div class="admin-kpi-grid">
+              <div class="card kpi-card">
+                <span class="kpi-label">Total Peserta Terdaftar</span>
+                <strong class="kpi-value tabular-nums" id="mon-kpi-total">0</strong>
+              </div>
+              <div class="card kpi-card">
+                <span class="kpi-label">Sedang Mengerjakan</span>
+                <strong class="kpi-value tabular-nums" id="mon-kpi-active">0</strong>
+              </div>
+              <div class="card kpi-card">
+                <span class="kpi-label">Sudah Selesai</span>
+                <strong class="kpi-value tabular-nums" id="mon-kpi-done">0</strong>
+              </div>
+              <div class="card kpi-card">
+                <span class="kpi-label">Rata-rata Progres Jawab</span>
+                <strong class="kpi-value tabular-nums" id="mon-kpi-avg-progress">0%</strong>
+              </div>
+            </div>
+
+            <div class="card admin-table-card">
+              <div class="admin-toolbar">
+                <div>
+                  <h2 class="card-title">Monitoring Pengerjaan Per Siswa</h2>
+                  <p class="card-desc">Pantau progres jumlah soal yang telah dijawab dan persentase penyelesaian setiap siswa secara otomatis.</p>
+                </div>
+                <div class="admin-toolbar-controls">
+                  <input
+                    type="search"
+                    id="admin-monitoring-search"
+                    class="form-input input-compact"
+                    placeholder="Cari nama, kelas, atau absen..."
+                    aria-label="Cari peserta monitoring"
+                  />
+                  <select id="admin-monitoring-filter-status" class="form-select input-compact" aria-label="Filter status pengerjaan">
+                    <option value="all">Semua Status</option>
+                    <option value="Sedang Mengerjakan">Sedang Mengerjakan</option>
+                    <option value="Belum Mulai">Belum Mulai</option>
+                    <option value="Selesai">Selesai</option>
+                  </select>
+                  <button type="button" class="btn btn-outline btn-sm" id="btn-refresh-monitoring">
+                    Perbarui Data
+                  </button>
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="data-table" id="admin-monitoring-table">
+                  <thead>
+                    <tr>
+                      <th>No.</th>
+                      <th>Nama Siswa</th>
+                      <th>Kelas</th>
+                      <th>No. Absen</th>
+                      <th>Status Ujian</th>
+                      <th>Soal Terjawab</th>
+                      <th>Persentase Menjawab</th>
+                      <th>Posisi / Sisa Waktu</th>
+                      <th>Aktivitas Terakhir</th>
+                    </tr>
+                  </thead>
+                  <tbody id="admin-monitoring-tbody">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Admin Tab 2: Bank Soal CRUD -->
+          <div class="admin-tab-panel" id="admin-panel-questions">
+            <div class="card admin-table-card">
+              <div class="admin-toolbar">
+                <div>
+                  <h2 class="card-title">Kelola Bank Soal (<span class="tabular-nums" id="admin-q-count">0</span> Soal)</h2>
+                  <p class="card-desc">Tambah soal baru, ubah materi/pertanyaan, atur kunci jawaban, atau hapus butir soal.</p>
+                </div>
+                <div class="admin-toolbar-controls">
+                  <button type="button" class="btn btn-outline btn-sm" id="btn-shuffle-question-bank">
+                    Acak Soal &amp; Jawaban
+                  </button>
+                  <button type="button" class="btn btn-outline btn-sm" id="btn-export-questions-pdf">
+                    Ekspor PDF Soal &amp; Kunci
+                  </button>
+                  <button type="button" class="btn btn-outline btn-sm" id="btn-bank-export-import">
+                    Export / Import Soal
+                  </button>
+                  <button type="button" class="btn btn-outline btn-sm" id="btn-pg-template">
+                    Template Soal PG
+                  </button>
+                  <button type="button" class="btn btn-outline btn-sm" id="btn-reset-default-questions">
+                    Reset Soal Default
+                  </button>
+                  <button type="button" class="btn btn-primary btn-sm" id="btn-add-question">
+                    + Tambah Soal Baru
+                  </button>
+                </div>
+              </div>
+
+              <div class="admin-filter-row">
+                <input
+                  type="search"
+                  id="admin-q-search"
+                  class="form-input input-compact"
+                  placeholder="Cari teks soal..."
+                  aria-label="Cari soal"
+                />
+                <select id="admin-q-filter-type" class="form-select input-compact" aria-label="Filter jenis soal">
+                  <option value="all">Semua Jenis Soal</option>
+                  <option value="pg">Pilihan Ganda (A–E)</option>
+                  <option value="pg_kompleks">Pilihan Ganda Kompleks</option>
+                  <option value="isian">Isian Singkat (Angka)</option>
+                  <option value="benar_salah">Benar atau Salah</option>
+                </select>
+                <select id="admin-q-filter-topic" class="form-select input-compact" aria-label="Filter materi">
+                  <option value="all">Semua Materi</option>
+                  <option value="Apa Itu Informatika?">Apa Itu Informatika?</option>
+                  <option value="Apa itu Ketrampilan Generik?">Apa itu Ketrampilan Generik?</option>
+                  <option value="BERPIKIR KOMPUTASIONAL">BERPIKIR KOMPUTASIONAL</option>
+                  <option value="Mengenal Berpikir Komputasional">Mengenal Berpikir Komputasional</option>
+                  <option value="Pencarian (Searching)">Pencarian (Searching)</option>
+                  <option value="Pengurutan (Sorting)">Pengurutan (Sorting)</option>
+                  <option value="Tumpukan (Stack) dan Antrean (Queue)">Tumpukan (Stack) dan Antrean (Queue)</option>
+                </select>
+              </div>
+
+              <div class="admin-question-list" id="admin-question-list">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Admin Tab 3: Cakupan Materi Ujian -->
+          <div class="admin-tab-panel" id="admin-panel-syllabus">
+            <div class="card admin-table-card">
+              <div class="admin-toolbar">
+                <div>
+                  <h2 class="card-title">Pengaturan Cakupan Materi Ujian</h2>
+                  <p class="card-desc">Ubah mata pelajaran, materi pokok, waktu ujian, serta daftar butir Cakupan Materi Ujian yang tampil di halaman Login dan Dashboard.</p>
+                </div>
+                <div class="admin-toolbar-controls">
+                  <button type="button" class="btn btn-outline btn-sm" id="btn-reset-syllabus">
+                    Reset Default
+                  </button>
+                  <button type="button" class="btn btn-primary btn-sm" id="btn-save-syllabus">
+                    Simpan Perubahan
+                  </button>
+                </div>
+              </div>
+
+              <div class="form-stack">
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label for="admin-set-subject" class="form-label">Mata Pelajaran</label>
+                    <input type="text" id="admin-set-subject" class="form-input" placeholder="INFORMATIKA" />
+                  </div>
+                  <div class="form-group">
+                    <label for="admin-set-duration" class="form-label">Waktu Ujian (Menit)</label>
+                    <input type="number" id="admin-set-duration" class="form-input mono-input" min="5" max="300" />
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="admin-set-main-topic" class="form-label">Materi Pokok (Tampil di Dashboard)</label>
+                  <input type="text" id="admin-set-main-topic" class="form-input" />
+                </div>
+
+                <div class="card-divider"></div>
+
+                <div class="form-group">
+                  <label class="form-label">Daftar Butir Cakupan Materi Ujian (Tampil di Halaman Login)</label>
+                  <div class="syllabus-editor-list" id="admin-syllabus-list">
+                    <!-- Populated dynamically -->
+                  </div>
+                </div>
+
+                <div class="syllabus-add-row">
+                  <input
+                    type="text"
+                    id="admin-new-syllabus-item"
+                    class="form-input"
+                    placeholder="Tulis poin cakupan materi baru..."
+                  />
+                  <button type="button" class="btn btn-outline" id="btn-add-syllabus-item">
+                    + Tambah Poin Materi
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Admin Tab 4: Menu Token & Reset Token -->
+          <div class="admin-tab-panel" id="admin-panel-token">
+            <div class="card admin-table-card">
+              <div class="admin-toolbar">
+                <div>
+                  <h2 class="card-title">Pengaturan Token Ujian &amp; Reset Token</h2>
+                  <p class="card-desc">Kelola kode Token Ujian aktif, reset token kapan saja sebelum atau saat sesi berlangsung, dan atur tampilannya pada akun masuk siswa.</p>
+                </div>
+                <div class="admin-toolbar-controls">
+                  <button type="button" class="btn btn-outline btn-sm" id="btn-copy-token">
+                    Salin Token
+                  </button>
+                  <button type="button" class="btn btn-outline btn-sm hidden" id="btn-reactivate-token">
+                    Aktifkan Kembali
+                  </button>
+                  <button type="button" class="btn btn-primary btn-sm" id="btn-reset-token">
+                    Reset Token Baru
+                  </button>
+                </div>
+              </div>
+
+              <div class="token-showcase-box" id="admin-token-showcase">
+                <div class="token-showcase-main">
+                  <span class="kpi-label">Token Ujian Aktif Saat Ini</span>
+                  <div class="token-code-display mono-text" id="admin-token-display">------</div>
+                  <span class="meta-text" id="admin-token-updated-at">Diperbarui: -</span>
+                </div>
+                <div class="token-showcase-meta">
+                  <span class="kpi-label">Status Validasi Masuk Siswa</span>
+                  <strong class="status-text-pass" id="admin-token-status-text">Aktif · Wajib Diisi · Muncul di Akun Masuk Siswa</strong>
+                  <span class="meta-text tabular-nums" id="admin-token-progress-text">Progres Peserta: 0 selesai</span>
+                  <p class="card-desc">
+                    Jika Anda menekan <strong>Reset Token Baru</strong>, token lama otomatis tidak berlaku dan token terbaru langsung aktif.
+                  </p>
+                </div>
+              </div>
+
+              <div class="card-divider"></div>
+
+              <div class="form-stack">
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label for="admin-custom-token-input" class="form-label">Atur Token Manual (4–12 Huruf/Angka)</label>
+                    <div class="syllabus-add-row">
+                      <input
+                        type="text"
+                        id="admin-custom-token-input"
+                        class="form-input mono-input token-input"
+                        placeholder="Contoh: MAZRO26"
+                        maxlength="12"
+                      />
+                      <button type="button" class="btn btn-outline" id="btn-save-custom-token">
+                        Simpan Token
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="admin-token-target-count" class="form-label">Target Jumlah Siswa (0 = Otomatis Semua Terdaftar)</label>
+                    <div class="syllabus-add-row">
+                      <input
+                        type="number"
+                        id="admin-token-target-count"
+                        class="form-input mono-input"
+                        min="0"
+                        max="2000"
+                        placeholder="0"
+                      />
+                      <button type="button" class="btn btn-outline" id="btn-save-token-target">
+                        Simpan Target
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="token-options-grid">
+                  <label class="editor-key-pick">
+                    <input type="checkbox" id="admin-token-required" checked />
+                    <span>Wajibkan siswa memasukkan Token Ujian saat login</span>
+                  </label>
+                  <label class="editor-key-pick">
+                    <input type="checkbox" id="admin-token-show-on-login" checked />
+                    <span>Munculkan kode Token Ujian aktif di halaman Akun Masuk Siswa</span>
+                  </label>
+                  <label class="editor-key-pick">
+                    <input type="checkbox" id="admin-token-auto-stop" checked />
+                    <span>Hentikan token secara otomatis setelah seluruh siswa selesai mengerjakan soal</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ==================== MODAL: ADMIN AUTH ==================== -->
+    <div class="modal-backdrop hidden" id="modal-admin-auth" role="dialog" aria-modal="true" aria-labelledby="modal-admin-title">
+      <div class="modal-card modal-sm">
+        <div class="modal-header">
+          <h2 class="modal-title" id="modal-admin-title">Akses Portal Admin</h2>
+          <button type="button" class="modal-close" data-close-modal="modal-admin-auth" aria-label="Tutup">×</button>
+        </div>
+        <form id="admin-auth-form" class="form-stack">
+          <p class="card-desc">
+            Masukkan kode PIN Admin untuk mengelola bank soal, kunci jawaban, dan rekap hasil penilaian siswa.
+          </p>
+          <div class="form-group">
+            <label for="input-admin-pin" class="form-label">PIN Admin</label>
+            <input
+              type="password"
+              id="input-admin-pin"
+              class="form-input mono-input"
+              placeholder="Masukkan PIN Admin"
+              required
+            />
+          </div>
+          <p class="form-error hidden" id="admin-auth-error" role="alert"></p>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-outline" data-close-modal="modal-admin-auth">Batal</button>
+            <button type="submit" class="btn btn-primary">Buka Admin</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ==================== MODAL: ADD / EDIT QUESTION ==================== -->
+    <div class="modal-backdrop hidden" id="modal-question-form" role="dialog" aria-modal="true" aria-labelledby="modal-q-title">
+      <div class="modal-card modal-lg">
+        <div class="modal-header">
+          <h2 class="modal-title" id="modal-q-title">Tambah Soal Baru</h2>
+          <button type="button" class="modal-close" data-close-modal="modal-question-form" aria-label="Tutup">×</button>
+        </div>
+
+        <form id="question-editor-form" class="form-stack">
+          <input type="hidden" id="edit-q-id" />
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="edit-q-type" class="form-label">Jenis Soal</label>
+              <select id="edit-q-type" class="form-select" required>
+                <option value="pg">Pilihan Ganda (A–E)</option>
+                <option value="pg_kompleks">Pilihan Ganda Kompleks (Checkbox)</option>
+                <option value="isian">Isian Singkat (Angka)</option>
+                <option value="benar_salah">Benar atau Salah</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="edit-q-topic" class="form-label">Materi</label>
+              <select id="edit-q-topic" class="form-select" required>
+                <option value="Apa Itu Informatika?">Apa Itu Informatika?</option>
+                <option value="Apa itu Ketrampilan Generik?">Apa itu Ketrampilan Generik?</option>
+                <option value="BERPIKIR KOMPUTASIONAL">BERPIKIR KOMPUTASIONAL</option>
+                <option value="Mengenal Berpikir Komputasional">Mengenal Berpikir Komputasional</option>
+                <option value="Pencarian (Searching)">Pencarian (Searching)</option>
+                <option value="Pengurutan (Sorting)">Pengurutan (Sorting)</option>
+                <option value="Tumpukan (Stack) dan Antrean (Queue)">Tumpukan (Stack) dan Antrean (Queue)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="quick-template-bar" id="pg-quick-template-bar">
+            <span class="meta-text">Butuh format cepat? Gunakan kerangka standar Pilihan Ganda (A–E).</span>
+            <button type="button" class="btn btn-outline btn-sm" id="btn-apply-pg-template">
+              Isi dari Template PG
+            </button>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-q-text" class="form-label">Pertanyaan</label>
+            <textarea
+              id="edit-q-text"
+              class="form-textarea"
+              rows="3"
+              placeholder="Tuliskan pertanyaan seputar Informatika atau Berpikir Komputasional..."
+              required
+            ></textarea>
+          </div>
+
+          <!-- Dynamic Options & Answer Key Area -->
+          <div id="edit-q-dynamic-area" class="dynamic-editor-area">
+            <!-- Rendered by script.js -->
+          </div>
+
+          <div class="form-group">
+            <label for="edit-q-explanation" class="form-label">Pembahasan Singkat (Opsional)</label>
+            <input
+              type="text"
+              id="edit-q-explanation"
+              class="form-input"
+              placeholder="Penjelasan ringkas mengenai kunci jawaban..."
+            />
+          </div>
+
+          <p class="form-error hidden" id="question-editor-error" role="alert"></p>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-outline" data-close-modal="modal-question-form">Batal</button>
+            <button type="submit" class="btn btn-primary" id="btn-save-question">Simpan Soal &amp; Kunci</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ==================== MODAL: TEMPLATE SOAL PG ==================== -->
+    <div class="modal-backdrop hidden" id="modal-pg-template" role="dialog" aria-modal="true" aria-labelledby="modal-pg-template-title">
+      <div class="modal-card modal-lg">
+        <div class="modal-header">
+          <h2 class="modal-title" id="modal-pg-template-title">Template Soal Pilihan Ganda (A–E)</h2>
+          <button type="button" class="modal-close" data-close-modal="modal-pg-template" aria-label="Tutup">×</button>
+        </div>
+
+        <div class="form-stack">
+          <div class="template-section">
+            <h3 class="section-label">1. Unduh File Template Siap Isi</h3>
+            <p class="card-desc">
+              Gunakan format CSV (untuk Microsoft Excel / Google Sheets) atau JSON untuk menyusun banyak soal Pilihan Ganda sekaligus beserta kunci jawabannya.
+            </p>
+            <div class="template-download-row">
+              <button type="button" class="btn btn-outline" id="btn-download-pg-csv">
+                Unduh Template CSV (Excel)
+              </button>
+              <button type="button" class="btn btn-outline" id="btn-download-pg-json">
+                Unduh Template JSON
+              </button>
+            </div>
+            <p class="field-hint">
+              Kolom wajib CSV: <code class="mono-text">Materi, Pertanyaan, Opsi_A, Opsi_B, Opsi_C, Opsi_D, Opsi_E, Kunci_Jawaban (A-E), Pembahasan</code>
+            </p>
+          </div>
+
+          <div class="template-section">
+            <h3 class="section-label">2. Impor Soal dari File Template (.csv / .json)</h3>
+            <div class="form-group">
+              <label for="pg-template-file-input" class="form-label">Pilih File Template</label>
+              <input
+                type="file"
+                id="pg-template-file-input"
+                class="form-input"
+                accept=".csv,.json,text/csv,application/json"
+              />
+            </div>
+
+            <div class="template-mode-row">
+              <label class="editor-key-pick">
+                <input type="radio" name="pg-import-mode" value="append" checked />
+                <span>Tambahkan ke Bank Soal saat ini</span>
+              </label>
+              <label class="editor-key-pick">
+                <input type="radio" name="pg-import-mode" value="replace" />
+                <span>Ganti seluruh Bank Soal</span>
+              </label>
+            </div>
+
+            <div class="template-preview-box hidden" id="pg-import-preview"></div>
+            <p class="form-error hidden" id="pg-import-error" role="alert"></p>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-outline" data-close-modal="modal-pg-template">Tutup</button>
+            <button type="button" class="btn btn-primary" id="btn-import-pg-template" disabled>
+              Impor ke Bank Soal
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MODAL: EXPORT / IMPORT BANK SOAL ==================== -->
+    <div class="modal-backdrop hidden" id="modal-bank-export-import" role="dialog" aria-modal="true" aria-labelledby="modal-bank-ei-title">
+      <div class="modal-card modal-lg">
+        <div class="modal-header">
+          <h2 class="modal-title" id="modal-bank-ei-title">Export &amp; Import Bank Soal Ujian</h2>
+          <button type="button" class="modal-close" data-close-modal="modal-bank-export-import" aria-label="Tutup">×</button>
+        </div>
+
+        <div class="form-stack">
+          <div class="template-section">
+            <h3 class="section-label">1. Export Bank Soal Saat Ini (Arsip / Ujian Sebelumnya)</h3>
+            <p class="card-desc" id="bank-export-summary">
+              Simpan seluruh soal beserta kunci jawaban, pembahasan, dan pengaturan ujian untuk digunakan kembali di lain waktu.
+            </p>
+            <label class="editor-key-pick">
+              <input type="checkbox" id="bank-export-filtered-only" />
+              <span>Hanya export soal yang sesuai filter pencarian/materi saat ini</span>
+            </label>
+            <div class="template-download-row">
+              <button type="button" class="btn btn-primary" id="btn-export-bank-json">
+                Export Bank Soal (.json)
+              </button>
+              <button type="button" class="btn btn-outline" id="btn-export-bank-csv">
+                Export Bank Soal (.csv / Excel)
+              </button>
+            </div>
+            <p class="field-hint">
+              Format <code class="mono-text">.json</code> menyimpan lengkap seluruh tipe soal (PG, PG Kompleks, Isian, Benar/Salah) beserta pengaturan ujian.
+            </p>
+          </div>
+
+          <div class="template-section">
+            <h3 class="section-label">2. Import Soal dari Ujian Sebelumnya (.json / .csv)</h3>
+            <div class="form-group">
+              <label for="bank-import-file-input" class="form-label">Pilih File Bank Soal (.json / .csv)</label>
+              <input
+                type="file"
+                id="bank-import-file-input"
+                class="form-input"
+                accept=".json,.csv,application/json,text/csv"
+              />
+            </div>
+
+            <div class="template-mode-row">
+              <label class="editor-key-pick">
+                <input type="radio" name="bank-import-mode" value="replace" checked />
+                <span>Ganti seluruh Bank Soal saat ini</span>
+              </label>
+              <label class="editor-key-pick">
+                <input type="radio" name="bank-import-mode" value="append" />
+                <span>Tambahkan ke Bank Soal saat ini</span>
+              </label>
+            </div>
+
+            <label class="editor-key-pick hidden" id="bank-import-settings-wrap">
+              <input type="checkbox" id="bank-import-apply-settings" checked />
+              <span>Terapkan juga Mata Pelajaran, Materi Pokok &amp; Waktu Ujian dari arsip JSON</span>
+            </label>
+
+            <div class="template-preview-box hidden" id="bank-import-preview"></div>
+            <p class="form-error hidden" id="bank-import-error" role="alert"></p>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-outline" data-close-modal="modal-bank-export-import">Tutup</button>
+            <button type="button" class="btn btn-primary" id="btn-confirm-bank-import" disabled>
+              Import ke Bank Soal
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MODAL: CONFIRMATION ==================== -->
+    <div class="modal-backdrop hidden" id="modal-confirm" role="dialog" aria-modal="true" aria-labelledby="modal-confirm-title">
+      <div class="modal-card modal-sm">
+        <div class="modal-header">
+          <h2 class="modal-title" id="modal-confirm-title">Konfirmasi</h2>
+          <button type="button" class="modal-close" data-close-modal="modal-confirm" aria-label="Tutup">×</button>
+        </div>
+        <p class="confirm-message" id="modal-confirm-message"></p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" id="btn-confirm-cancel">Batal</button>
+          <button type="button" class="btn btn-primary" id="btn-confirm-ok">Lanjutkan</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container no-print" id="toast-container" aria-live="polite"></div>
+
+    <script type="module" src="/script.js"></script>
+  </body>
+</html>
