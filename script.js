@@ -24,11 +24,13 @@ const STORAGE_KEYS = {
   TOKEN: 'cbt_mazro_token',
   ADMIN_AUTH: 'cbt_mazro_admin_auth',
   SETTINGS: 'cbt_mazro_settings',
+  STUDENT_QUESTIONS: 'cbt_mazro_student_questions',
 };
 
 const DEFAULT_SETTINGS = {
   subject: 'INFORMATIKA',
   mainTopic: 'Informatika & Ketrampilan Umum Serta Berpikir Komputasional',
+  heroSubtitle: '',
   durationMinutes: 120,
   syllabusItems: [
     'Apa Itu Informatika dan delapan pilar keilmuannya',
@@ -41,6 +43,7 @@ const DEFAULT_SETTINGS = {
 };
 
 const EXAM_DURATION_MINUTES = 120;
+const DEFAULT_STUDENT_QUESTION_COUNT = 50;
 const PASSING_GRADE = 75;
 const ADMIN_PIN = 'mazro123';
 
@@ -84,6 +87,13 @@ const state = {
   settings: null,
   tokenConfig: null,
   draftSyllabusItems: [],
+  studentQuestionConfig: null,
+  draftStudentQuestionConfig: null,
+  studentQMenuOpen: true,
+  aiGenMenuOpen: true,
+  aiGenerating: false,
+  aiAbortController: null,
+  previousQuestionsBeforeAi: null,
 };
 
 /* ==================== STORAGE HELPERS ==================== */
@@ -124,6 +134,8 @@ async function initApp() {
   loadTokenConfig();
 
   await loadQuestionBank();
+  loadStudentQuestionConfig();
+  syncTopicSelectElements();
   bindEvents();
   updateGlobalMetaCounts();
   renderLoginSyllabus();
@@ -147,7 +159,12 @@ async function initApp() {
 async function loadQuestionBank(forceDefault = false) {
   if (!forceDefault) {
     const cached = readStorage(STORAGE_KEYS.QUESTIONS, null);
-    if (Array.isArray(cached) && cached.length > 0) {
+    const isLegacyDefaultBank65 =
+      Array.isArray(cached) &&
+      cached.length === 65 &&
+      cached[0]?.id === 'Q001' &&
+      cached[64]?.id === 'Q065';
+    if (Array.isArray(cached) && cached.length > 0 && !isLegacyDefaultBank65) {
       state.questions = cached;
       return;
     }
@@ -172,6 +189,7 @@ function loadExamSettings() {
   state.settings = {
     subject: saved?.subject || DEFAULT_SETTINGS.subject,
     mainTopic: saved?.mainTopic || DEFAULT_SETTINGS.mainTopic,
+    heroSubtitle: typeof saved?.heroSubtitle === 'string' ? saved.heroSubtitle : DEFAULT_SETTINGS.heroSubtitle,
     durationMinutes: Number(saved?.durationMinutes) > 0 ? Number(saved.durationMinutes) : DEFAULT_SETTINGS.durationMinutes,
     syllabusItems:
       Array.isArray(saved?.syllabusItems) && saved.syllabusItems.length > 0
@@ -181,15 +199,88 @@ function loadExamSettings() {
 }
 
 function renderLoginSyllabus() {
+  if (!state.settings) loadExamSettings();
   const listEl = document.getElementById('login-syllabus-list');
-  if (!listEl || !state.settings) return;
-  listEl.innerHTML = state.settings.syllabusItems
-    .map((item) => `<li>${escapeHtml(item)}</li>`)
-    .join('');
+  if (listEl) {
+    listEl.innerHTML = state.settings.syllabusItems
+      .map((item) => `<li>${escapeHtml(item)}</li>`)
+      .join('');
+  }
+
+  const subjectEl = document.getElementById('login-subject-label');
+  if (subjectEl) subjectEl.textContent = state.settings.subject;
+
+  const loginHeadingEl = document.getElementById('login-heading');
+  if (loginHeadingEl) {
+    loginHeadingEl.textContent = `Ujian Online ${state.settings.subject}`;
+  }
+}
+
+function getDefaultStudentQuestionIds() {
+  return state.questions
+    .slice(0, Math.min(DEFAULT_STUDENT_QUESTION_COUNT, state.questions.length))
+    .map((q) => q.id);
+}
+
+function loadStudentQuestionConfig() {
+  const saved = readStorage(STORAGE_KEYS.STUDENT_QUESTIONS, null);
+  const validIds = new Set(state.questions.map((q) => q.id));
+  const defaultIds = getDefaultStudentQuestionIds();
+  const isLegacyDefault = !saved || (saved.version !== 2 && !saved.userCustomized);
+
+  if (isLegacyDefault) {
+    state.studentQuestionConfig = {
+      mode: 'preset50',
+      selectedIds: defaultIds,
+      orderMode: saved?.orderMode === 'ordered' ? 'ordered' : 'shuffle',
+      version: 2,
+      userCustomized: false,
+      updatedAt: saved?.updatedAt || null,
+    };
+  } else {
+    const mode = saved.mode === 'custom' || saved.mode === 'all' || saved.mode === 'preset50' ? saved.mode : 'preset50';
+    let rawSelected = Array.isArray(saved.selectedIds)
+      ? saved.selectedIds.filter((id) => validIds.has(id))
+      : defaultIds;
+    if (mode === 'preset50') {
+      rawSelected = defaultIds;
+    } else if (mode === 'all') {
+      rawSelected = state.questions.map((q) => q.id);
+    } else if (rawSelected.length === 0 && defaultIds.length > 0) {
+      rawSelected = defaultIds;
+    }
+
+    state.studentQuestionConfig = {
+      mode,
+      selectedIds: rawSelected,
+      orderMode: saved.orderMode === 'ordered' ? 'ordered' : 'shuffle',
+      version: 2,
+      userCustomized: Boolean(saved.userCustomized),
+      updatedAt: saved.updatedAt || null,
+    };
+  }
+
+  state.draftStudentQuestionConfig = {
+    mode: state.studentQuestionConfig.mode,
+    selectedIds: [...state.studentQuestionConfig.selectedIds],
+    orderMode: state.studentQuestionConfig.orderMode,
+  };
+}
+
+function getActiveStudentQuestions() {
+  if (!state.studentQuestionConfig) loadStudentQuestionConfig();
+  if (state.studentQuestionConfig.mode === 'all') {
+    return [...state.questions];
+  }
+  if (state.studentQuestionConfig.mode === 'preset50') {
+    return state.questions.slice(0, Math.min(DEFAULT_STUDENT_QUESTION_COUNT, state.questions.length));
+  }
+  const selectedSet = new Set(state.studentQuestionConfig.selectedIds || []);
+  return state.questions.filter((q) => selectedSet.has(q.id));
 }
 
 function updateGlobalMetaCounts() {
-  const total = state.questions.length;
+  const total = getActiveStudentQuestions().length;
   const duration = state.settings?.durationMinutes || EXAM_DURATION_MINUTES;
   const loginCountEl = document.getElementById('login-question-count');
   if (loginCountEl) {
@@ -197,8 +288,28 @@ function updateGlobalMetaCounts() {
   }
 }
 
+function applySettingsToUI() {
+  if (!state.settings) loadExamSettings();
+  renderLoginSyllabus();
+  updateGlobalMetaCounts();
+
+  const dashSubject = document.getElementById('dash-subject');
+  const dashTopic = document.getElementById('dash-main-topic');
+  const dashDuration = document.getElementById('dash-duration');
+  if (dashSubject) dashSubject.textContent = state.settings.subject;
+  if (dashTopic) dashTopic.textContent = state.settings.mainTopic;
+  if (dashDuration) dashDuration.textContent = `${state.settings.durationMinutes} Menit`;
+
+  if (state.currentView === 'submitted') renderSubmittedView();
+  if (state.currentView === 'result') renderResultView();
+}
+
 /* ==================== NAVIGATION & VIEW SWITCHING ==================== */
 function switchView(viewName) {
+  if (viewName === 'admin' && !state.adminUnlocked) {
+    openAdminPortal();
+    return;
+  }
   if (viewName === 'result' && !state.adminUnlocked) {
     viewName = state.student ? 'dashboard' : 'login';
   }
@@ -312,9 +423,10 @@ function bindEvents() {
   document.getElementById('btn-logout-student').addEventListener('click', logoutStudent);
   document.getElementById('btn-start-exam').addEventListener('click', handleStartOrResumeExam);
   document.getElementById('btn-reset-session').addEventListener('click', () => {
+    const durationMins = state.settings?.durationMinutes || EXAM_DURATION_MINUTES;
     openConfirmModal(
       'Mulai Ulang Sesi Baru?',
-      'Progres ujian yang tersimpan sebelumnya akan dihapus dan soal akan diacak ulang dengan waktu 120 menit penuh.',
+      `Progres ujian yang tersimpan sebelumnya akan dihapus dan soal akan diacak ulang dengan waktu ${durationMins} menit penuh.`,
       () => {
         removeStorage(STORAGE_KEYS.SESSION);
         state.session = null;
@@ -345,9 +457,10 @@ function bindEvents() {
   document.getElementById('btn-print-result').addEventListener('click', () => window.print());
   document.getElementById('btn-download-pdf').addEventListener('click', handleDownloadPdf);
   document.getElementById('btn-retake-test').addEventListener('click', () => {
+    const durationMins = state.settings?.durationMinutes || EXAM_DURATION_MINUTES;
     openConfirmModal(
       'Ulangi Tes Sekarang?',
-      'Anda akan memulai tes baru dengan urutan soal acak dan timer 120 menit.',
+      `Anda akan memulai tes baru dengan urutan soal acak dan timer ${durationMins} menit.`,
       () => {
         if (!state.student && state.activeResult) {
           state.student = {
@@ -390,6 +503,13 @@ function bindEvents() {
       if (state.adminTab === 'monitoring') {
         renderAdminMonitoringTable();
       }
+      if (state.adminTab === 'questions') {
+        renderAiGeneratorPanel();
+        renderAdminQuestionList();
+      }
+      if (state.adminTab === 'syllabus') {
+        renderAdminSyllabusPanel();
+      }
       if (state.adminTab === 'token') {
         renderAdminTokenPanel();
       }
@@ -403,7 +523,12 @@ function bindEvents() {
       handleAddSyllabusItem();
     }
   });
+  document.getElementById('admin-syllabus-form').addEventListener('submit', handleSaveSyllabus);
   document.getElementById('btn-save-syllabus').addEventListener('click', handleSaveSyllabus);
+  document.getElementById('btn-cancel-syllabus-edit').addEventListener('click', handleCancelSyllabusEdit);
+  ['admin-set-subject', 'admin-set-duration', 'admin-set-main-topic'].forEach((fieldId) => {
+    document.getElementById(fieldId).addEventListener('input', updateSyllabusDirtyState);
+  });
   document.getElementById('btn-reset-syllabus').addEventListener('click', () => {
     openConfirmModal(
       'Reset Cakupan Materi ke Default?',
@@ -412,8 +537,7 @@ function bindEvents() {
         removeStorage(STORAGE_KEYS.SETTINGS);
         loadExamSettings();
         renderAdminSyllabusPanel();
-        renderLoginSyllabus();
-        updateGlobalMetaCounts();
+        applySettingsToUI();
         showToast('Cakupan materi berhasil dikembalikan ke default.', 'success');
       }
     );
@@ -461,10 +585,89 @@ function bindEvents() {
     showToast('Data monitoring siswa diperbarui.', 'success');
   });
 
-  // Admin Bank Soal Filters & CRUD
+  // Admin Bank Soal Filters, Menu Perubahan Soal Siswa & CRUD
   document.getElementById('admin-q-search').addEventListener('input', renderAdminQuestionList);
   document.getElementById('admin-q-filter-type').addEventListener('change', renderAdminQuestionList);
   document.getElementById('admin-q-filter-topic').addEventListener('change', renderAdminQuestionList);
+  document.getElementById('admin-q-filter-student-status').addEventListener('change', renderAdminQuestionList);
+  document.getElementById('btn-toggle-ai-gen-menu').addEventListener('click', () => {
+    state.aiGenMenuOpen = !state.aiGenMenuOpen;
+    const panel = document.getElementById('ai-generate-menu-panel');
+    if (panel) panel.classList.toggle('hidden', !state.aiGenMenuOpen);
+  });
+  document.getElementById('btn-ai-goto-syllabus').addEventListener('click', () => {
+    const syllabusTabBtn = document.querySelector('[data-admin-tab="syllabus"]');
+    if (syllabusTabBtn) syllabusTabBtn.click();
+  });
+  document.getElementById('ai-gen-target-mode').addEventListener('change', (e) => {
+    const customBox = document.getElementById('ai-gen-custom-counts');
+    if (customBox) customBox.classList.toggle('hidden', e.target.value !== 'custom');
+  });
+  document.getElementById('btn-run-ai-generate').addEventListener('click', promptGenerateAiQuestions);
+  document.getElementById('btn-cancel-ai-gen').addEventListener('click', cancelAiQuestionGeneration);
+  document.getElementById('btn-undo-ai-gen').addEventListener('click', undoAiQuestionGeneration);
+
+  document.getElementById('btn-toggle-student-q-menu').addEventListener('click', () => {
+    state.studentQMenuOpen = !state.studentQMenuOpen;
+    const panel = document.getElementById('student-q-menu-panel');
+    if (panel) panel.classList.toggle('hidden', !state.studentQMenuOpen);
+  });
+  document.querySelectorAll('input[name="student-q-mode"]').forEach((radio) => {
+    radio.addEventListener('change', (e) => {
+      if (!state.draftStudentQuestionConfig) loadStudentQuestionConfig();
+      const val = e.target.value;
+      const mode = val === 'custom' || val === 'all' ? val : 'preset50';
+      state.draftStudentQuestionConfig.mode = mode;
+      if (mode === 'preset50') {
+        state.draftStudentQuestionConfig.selectedIds = getDefaultStudentQuestionIds();
+      } else if (mode === 'all') {
+        state.draftStudentQuestionConfig.selectedIds = state.questions.map((q) => q.id);
+      } else if (state.draftStudentQuestionConfig.selectedIds.length === 0) {
+        state.draftStudentQuestionConfig.selectedIds = getDefaultStudentQuestionIds();
+      }
+      renderStudentQuestionMenu();
+      renderAdminQuestionList();
+    });
+  });
+  document.getElementById('student-q-order-mode').addEventListener('change', (e) => {
+    if (!state.draftStudentQuestionConfig) loadStudentQuestionConfig();
+    state.draftStudentQuestionConfig.orderMode = e.target.value === 'ordered' ? 'ordered' : 'shuffle';
+    updateStudentQuestionDirtyState();
+  });
+  document.getElementById('btn-student-q-random-pick').addEventListener('click', handleRandomPickStudentQuestions);
+  document.getElementById('btn-student-q-preset-50').addEventListener('click', () => {
+    if (!state.draftStudentQuestionConfig) loadStudentQuestionConfig();
+    state.draftStudentQuestionConfig.mode = 'preset50';
+    state.draftStudentQuestionConfig.selectedIds = getDefaultStudentQuestionIds();
+    renderStudentQuestionMenu();
+    renderAdminQuestionList();
+  });
+  document.getElementById('btn-student-q-select-all').addEventListener('click', () => {
+    if (!state.draftStudentQuestionConfig) loadStudentQuestionConfig();
+    state.draftStudentQuestionConfig.mode = 'all';
+    state.draftStudentQuestionConfig.selectedIds = state.questions.map((q) => q.id);
+    renderStudentQuestionMenu();
+    renderAdminQuestionList();
+  });
+  document.getElementById('btn-student-q-select-filtered').addEventListener('click', () => {
+    if (!state.draftStudentQuestionConfig) loadStudentQuestionConfig();
+    const { list: filtered } = getFilteredAdminQuestions();
+    state.draftStudentQuestionConfig.mode = 'custom';
+    state.draftStudentQuestionConfig.selectedIds = filtered.map((q) => q.id);
+    renderStudentQuestionMenu();
+    renderAdminQuestionList();
+    showToast(`${filtered.length} soal sesuai filter dipilih dalam draf. Klik Simpan Perubahan untuk menerapkan.`, 'default');
+  });
+  document.getElementById('btn-student-q-clear-all').addEventListener('click', () => {
+    if (!state.draftStudentQuestionConfig) loadStudentQuestionConfig();
+    state.draftStudentQuestionConfig.mode = 'custom';
+    state.draftStudentQuestionConfig.selectedIds = [];
+    renderStudentQuestionMenu();
+    renderAdminQuestionList();
+  });
+  document.getElementById('btn-cancel-student-q').addEventListener('click', handleCancelStudentQuestionsConfig);
+  document.getElementById('btn-save-student-q').addEventListener('click', handleSaveStudentQuestionsConfig);
+
   document.getElementById('btn-add-question').addEventListener('click', () => openQuestionEditorModal(null));
   document.getElementById('btn-shuffle-question-bank').addEventListener('click', promptShuffleQuestionBank);
   document.getElementById('btn-export-questions-pdf').addEventListener('click', exportQuestionBankToPdf);
@@ -482,12 +685,14 @@ function bindEvents() {
   document.getElementById('btn-reset-default-questions').addEventListener('click', () => {
     openConfirmModal(
       'Reset ke Bank Soal Default?',
-      'Semua perubahan soal yang dibuat di Admin akan dikembalikan ke bank soal awal (questions.json).',
+      'Semua perubahan soal yang dibuat di Admin akan dikembalikan ke bank soal awal (100 soal) dengan paket ujian siswa default 50 soal.',
       async () => {
         await loadQuestionBank(true);
+        resetStudentQuestionConfigToDefault();
         updateGlobalMetaCounts();
+        renderStudentQuestionMenu();
         renderAdminQuestionList();
-        showToast('Bank soal berhasil dikembalikan ke default.', 'success');
+        showToast('Bank soal berhasil dikembalikan ke default (50 soal aktif untuk siswa).', 'success');
       }
     );
   });
@@ -539,23 +744,39 @@ function bindEvents() {
     }
   });
 
-  // Live cross-tab sync for Admin Monitoring & Results
+  // Live cross-tab sync for Admin Monitoring, Results & Exam Settings
   window.addEventListener('storage', (e) => {
     if (
       e.key === STORAGE_KEYS.MONITORING ||
       e.key === STORAGE_KEYS.RESULTS ||
       e.key === STORAGE_KEYS.SESSION ||
       e.key === STORAGE_KEYS.USED_IDENTITIES ||
-      e.key === STORAGE_KEYS.TOKEN
+      e.key === STORAGE_KEYS.TOKEN ||
+      e.key === STORAGE_KEYS.SETTINGS ||
+      e.key === STORAGE_KEYS.QUESTIONS ||
+      e.key === STORAGE_KEYS.STUDENT_QUESTIONS
     ) {
       state.results = readStorage(STORAGE_KEYS.RESULTS, []);
       state.usedIdentities = readStorage(STORAGE_KEYS.USED_IDENTITIES, []);
       state.monitoring = readStorage(STORAGE_KEYS.MONITORING, []);
+      const cachedQ = readStorage(STORAGE_KEYS.QUESTIONS, null);
+      if (Array.isArray(cachedQ) && cachedQ.length > 0) state.questions = cachedQ;
+      loadExamSettings();
+      loadStudentQuestionConfig();
+      applySettingsToUI();
       loadTokenConfig();
       renderLoginTokenField();
+      if (state.currentView === 'dashboard') {
+        renderDashboard();
+      }
       if (state.currentView === 'admin') {
         renderAdminResultsTable();
         renderAdminMonitoringTable();
+        syncTopicSelectElements();
+        renderAiGeneratorPanel();
+        renderStudentQuestionMenu();
+        renderAdminQuestionList();
+        renderAdminSyllabusPanel();
         renderAdminTokenPanel();
       }
     }
@@ -703,7 +924,7 @@ function handleStudentLogin(e) {
   upsertMonitoringRecord(state.student, {
     status: 'Belum Mulai',
     answeredCount: 0,
-    totalQuestions: state.questions.length,
+    totalQuestions: getActiveStudentQuestions().length,
     percentage: 0,
     currentNumber: 0,
     flaggedCount: 0,
@@ -758,12 +979,13 @@ function renderDashboard() {
   document.getElementById('dash-username').textContent = state.student.username;
   document.getElementById('dash-subject').textContent = state.settings?.subject || DEFAULT_SETTINGS.subject;
   document.getElementById('dash-main-topic').textContent = state.settings?.mainTopic || DEFAULT_SETTINGS.mainTopic;
-  document.getElementById('dash-total-soal').textContent = state.questions.length;
+  const activeQuestions = getActiveStudentQuestions();
+  document.getElementById('dash-total-soal').textContent = activeQuestions.length;
   document.getElementById('dash-duration').textContent = `${state.settings?.durationMinutes || EXAM_DURATION_MINUTES} Menit`;
 
   // Type breakdown
   const counts = { pg: 0, pg_kompleks: 0, isian: 0, benar_salah: 0 };
-  state.questions.forEach((q) => {
+  activeQuestions.forEach((q) => {
     if (counts[q.type] !== undefined) counts[q.type]++;
   });
 
@@ -839,8 +1061,9 @@ function handleStartOrResumeExam() {
     showToast('Ujian untuk peserta ini sudah diselesaikan dan tidak dapat diulang.', 'error');
     return;
   }
-  if (state.questions.length === 0) {
-    showToast('Bank soal masih kosong. Tambahkan soal di Portal Admin.', 'error');
+  const activeQuestions = getActiveStudentQuestions();
+  if (activeQuestions.length === 0) {
+    showToast('Belum ada soal aktif untuk dikerjakan. Silakan hubungi Admin/Pengawas ujian.', 'error');
     return;
   }
 
@@ -860,12 +1083,17 @@ function handleStartOrResumeExam() {
 
 function startNewExamSession() {
   if (!state.student) return switchView('login');
-  if (state.questions.length === 0) {
-    showToast('Bank soal kosong.', 'error');
+  const activeQuestions = getActiveStudentQuestions();
+  if (activeQuestions.length === 0) {
+    showToast('Belum ada soal aktif untuk dikerjakan siswa.', 'error');
     return;
   }
 
-  const shuffledIds = shuffleArray(state.questions.map((q) => q.id));
+  const orderMode = state.studentQuestionConfig?.orderMode || 'shuffle';
+  const orderedIds =
+    orderMode === 'ordered'
+      ? activeQuestions.map((q) => q.id)
+      : shuffleArray(activeQuestions.map((q) => q.id));
   const now = Date.now();
   const durationMinutes = state.settings?.durationMinutes || EXAM_DURATION_MINUTES;
   const durationMs = durationMinutes * 60 * 1000;
@@ -875,7 +1103,7 @@ function startNewExamSession() {
     studentUsername: state.student.username,
     studentNisn: state.student.nisn,
     studentAbsen: state.student.absen || '-',
-    questionOrder: shuffledIds,
+    questionOrder: orderedIds,
     answers: {},
     flagged: {},
     currentIndex: 0,
@@ -1316,6 +1544,9 @@ function finishExam(isAutoTimeout = false) {
   const topicStats = Object.values(topicMap).filter((item) => item.total > 0);
   const nomorUrut = state.results.length + 1;
 
+  const subject = state.settings?.subject || DEFAULT_SETTINGS.subject;
+  const mainTopic = state.settings?.mainTopic || DEFAULT_SETTINGS.mainTopic;
+
   const resultRecord = {
     id: `RES-${Date.now()}`,
     nomorUrut,
@@ -1323,6 +1554,8 @@ function finishExam(isAutoTimeout = false) {
     username: state.student.username,
     nisn: state.student.nisn,
     absen: state.student.absen || '-',
+    subject,
+    mainTopic,
     score,
     correctCount,
     wrongCount,
@@ -1357,6 +1590,8 @@ function finishExam(isAutoTimeout = false) {
     nama: resultRecord.nama,
     nisn: resultRecord.nisn,
     absen: resultRecord.absen,
+    subject: resultRecord.subject,
+    mainTopic: resultRecord.mainTopic,
     nomorUrut: resultRecord.nomorUrut,
     answeredCount,
     totalQuestions: resultRecord.totalQuestions,
@@ -1386,10 +1621,15 @@ function renderSubmittedView() {
   const sub = state.lastSubmission;
   if (!sub) return switchView('dashboard');
 
+  const subject = sub.subject || state.settings?.subject || DEFAULT_SETTINGS.subject;
+  const mainTopic = sub.mainTopic || state.settings?.mainTopic || DEFAULT_SETTINGS.mainTopic;
+
   document.getElementById('sub-nama').textContent = sub.nama;
   document.getElementById('sub-nisn').textContent = sub.nisn;
   document.getElementById('sub-absen').textContent = sub.absen || '-';
   document.getElementById('sub-nomor-urut').textContent = `#${sub.nomorUrut}`;
+  document.getElementById('sub-subject').textContent = subject;
+  document.getElementById('sub-main-topic').textContent = mainTopic;
   document.getElementById('sub-answered').textContent = `${sub.answeredCount} / ${sub.totalQuestions} Soal`;
   document.getElementById('sub-timestamp').textContent = formatDateTimeID(sub.completedAt);
 }
@@ -1399,13 +1639,19 @@ function renderResultView() {
   const res = state.activeResult;
   if (!res || !state.adminUnlocked) return switchView('admin');
 
+  const subject = res.subject || state.settings?.subject || DEFAULT_SETTINGS.subject;
+  const mainTopic = res.mainTopic || state.settings?.mainTopic || DEFAULT_SETTINGS.mainTopic;
+
   document.getElementById('btn-result-back-admin').classList.toggle('hidden', !state.resultOpenedFromAdmin);
   document.getElementById('btn-retake-test').classList.toggle('hidden', state.resultOpenedFromAdmin);
 
+  document.getElementById('result-heading').textContent = `Hasil Ujian ${subject}`;
   document.getElementById('res-nama').textContent = res.nama;
   document.getElementById('res-nisn').textContent = res.nisn;
   document.getElementById('res-absen').textContent = res.absen || '-';
   document.getElementById('res-nomor-urut').textContent = `#${res.nomorUrut}`;
+  document.getElementById('res-subject').textContent = subject;
+  document.getElementById('res-main-topic').textContent = mainTopic;
   document.getElementById('res-timestamp').textContent = formatDateTimeID(res.completedAt);
 
   document.getElementById('res-score').textContent = res.score;
@@ -1698,9 +1944,11 @@ function generateResultPdfBlob(res) {
   };
 
   // Header Banner
+  const pdfSubject = res.subject || state.settings?.subject || DEFAULT_SETTINGS.subject;
+  const pdfMainTopic = res.mainTopic || state.settings?.mainTopic || DEFAULT_SETTINGS.mainTopic;
   commands.push('0.114 0.306 0.847 rg 40 755 515 56 re f');
   drawText(56, 786, 'CBT ONLINE MAZRO - LAPORAN HASIL UJIAN', 'F2', 14, '1 1 1');
-  drawText(56, 768, 'Mata Pelajaran: INFORMATIKA | Materi: Informatika & Berpikir Komputasional', 'F1', 9.5, '0.88 0.94 1');
+  drawText(56, 768, `Mata Pelajaran: ${pdfSubject} | Materi: ${pdfMainTopic}`, 'F1', 9.5, '0.88 0.94 1');
 
   y = 732;
   // Student Identity Box
@@ -2111,6 +2359,8 @@ function exitAdmin() {
 function renderAdminView() {
   renderAdminResultsTable();
   renderAdminMonitoringTable();
+  syncTopicSelectElements();
+  renderAiGeneratorPanel();
   renderAdminQuestionList();
   renderAdminSyllabusPanel();
   renderAdminTokenPanel();
@@ -2504,7 +2754,7 @@ function getMergedMonitoringRecords() {
         absen: u.absen || '-',
         status: 'Belum Mulai',
         answeredCount: 0,
-        totalQuestions: state.questions.length,
+        totalQuestions: getActiveStudentQuestions().length,
         percentage: 0,
         currentNumber: 0,
         flaggedCount: 0,
@@ -2699,7 +2949,53 @@ function renderAdminSyllabusPanel() {
   document.getElementById('admin-set-main-topic').value = state.settings.mainTopic;
   document.getElementById('admin-set-duration').value = state.settings.durationMinutes;
   state.draftSyllabusItems = [...state.settings.syllabusItems];
+  renderSyllabusSavedSummary();
   renderAdminSyllabusList();
+  updateSyllabusDirtyState();
+}
+
+function renderSyllabusSavedSummary() {
+  if (!state.settings) loadExamSettings();
+  const savedSub = document.getElementById('syllabus-saved-subject');
+  const savedDur = document.getElementById('syllabus-saved-duration');
+  const savedTopic = document.getElementById('syllabus-saved-topic');
+  if (savedSub) savedSub.textContent = state.settings.subject;
+  if (savedDur) savedDur.textContent = `${state.settings.durationMinutes} Menit`;
+  if (savedTopic) savedTopic.textContent = state.settings.mainTopic;
+}
+
+function isSyllabusDirty() {
+  if (!state.settings) return false;
+  const subjectVal = (document.getElementById('admin-set-subject')?.value || '').trim();
+  const mainTopicVal = (document.getElementById('admin-set-main-topic')?.value || '').trim();
+  const durationVal = Number(document.getElementById('admin-set-duration')?.value);
+  const draftItems = state.draftSyllabusItems.map((s) => s.trim());
+  const savedItems = state.settings.syllabusItems.map((s) => s.trim());
+
+  if (subjectVal !== state.settings.subject) return true;
+  if (mainTopicVal !== state.settings.mainTopic) return true;
+  if (durationVal !== state.settings.durationMinutes) return true;
+  if (draftItems.length !== savedItems.length) return true;
+  return draftItems.some((item, idx) => item !== savedItems[idx]);
+}
+
+function updateSyllabusDirtyState() {
+  const dirty = isSyllabusDirty();
+  const badge = document.getElementById('syllabus-dirty-badge');
+  const cancelBtn = document.getElementById('btn-cancel-syllabus-edit');
+  if (badge) {
+    badge.textContent = dirty ? 'Perubahan belum disimpan' : 'Tersimpan';
+    badge.classList.toggle('is-dirty', dirty);
+    badge.classList.toggle('is-saved', !dirty);
+  }
+  if (cancelBtn) {
+    cancelBtn.classList.toggle('hidden', !dirty);
+  }
+}
+
+function handleCancelSyllabusEdit() {
+  renderAdminSyllabusPanel();
+  showToast('Perubahan yang belum disimpan dibatalkan.', 'default');
 }
 
 function renderAdminSyllabusList() {
@@ -2737,6 +3033,7 @@ function renderAdminSyllabusList() {
     input.addEventListener('input', (e) => {
       const idx = Number(e.target.dataset.syllabusInput);
       state.draftSyllabusItems[idx] = e.target.value;
+      updateSyllabusDirtyState();
     });
   });
 
@@ -2749,6 +3046,7 @@ function renderAdminSyllabusList() {
           state.draftSyllabusItems[idx - 1],
         ];
         renderAdminSyllabusList();
+        updateSyllabusDirtyState();
       }
     });
   });
@@ -2762,6 +3060,7 @@ function renderAdminSyllabusList() {
           state.draftSyllabusItems[idx + 1],
         ];
         renderAdminSyllabusList();
+        updateSyllabusDirtyState();
       }
     });
   });
@@ -2771,6 +3070,7 @@ function renderAdminSyllabusList() {
       const idx = Number(btn.dataset.syllabusDel);
       state.draftSyllabusItems.splice(idx, 1);
       renderAdminSyllabusList();
+      updateSyllabusDirtyState();
     });
   });
 }
@@ -2785,20 +3085,25 @@ function handleAddSyllabusItem() {
   state.draftSyllabusItems.push(text);
   input.value = '';
   renderAdminSyllabusList();
+  updateSyllabusDirtyState();
 }
 
-function handleSaveSyllabus() {
+function handleSaveSyllabus(e) {
+  if (e && typeof e.preventDefault === 'function') {
+    e.preventDefault();
+  }
+
   const subject = document.getElementById('admin-set-subject').value.trim();
   const mainTopic = document.getElementById('admin-set-main-topic').value.trim();
   const durationMinutes = Number(document.getElementById('admin-set-duration').value);
   const cleanedItems = state.draftSyllabusItems.map((s) => s.trim()).filter(Boolean);
 
   if (!subject || !mainTopic) {
-    showToast('Mata pelajaran dan materi pokok tidak boleh kosong.', 'error');
+    showToast('Mata Pelajaran dan Materi Pokok tidak boleh kosong.', 'error');
     return;
   }
-  if (!durationMinutes || durationMinutes < 5 || durationMinutes > 300) {
-    showToast('Waktu ujian harus antara 5 sampai 300 menit.', 'error');
+  if (!Number.isInteger(durationMinutes) || durationMinutes < 1 || durationMinutes > 600) {
+    showToast('Waktu Ujian harus berupa bilangan bulat antara 1 sampai 600 menit.', 'error');
     return;
   }
   if (cleanedItems.length === 0) {
@@ -2815,10 +3120,13 @@ function handleSaveSyllabus() {
   writeStorage(STORAGE_KEYS.SETTINGS, state.settings);
   state.draftSyllabusItems = [...cleanedItems];
 
+  renderSyllabusSavedSummary();
   renderAdminSyllabusList();
-  renderLoginSyllabus();
-  updateGlobalMetaCounts();
-  showToast('Cakupan materi ujian berhasil disimpan.', 'success');
+  updateSyllabusDirtyState();
+  syncTopicSelectElements();
+  renderAiGeneratorPanel();
+  applySettingsToUI();
+  showToast('Pengaturan Mata Pelajaran, Waktu Ujian, dan Materi Pokok berhasil disimpan.', 'success');
 }
 
 function getFilteredAdminResults() {
@@ -3063,16 +3371,188 @@ function renderAdminResultsTable() {
   });
 }
 
+function getDraftSelectedQuestionIdSet() {
+  if (!state.draftStudentQuestionConfig) loadStudentQuestionConfig();
+  if (state.draftStudentQuestionConfig.mode === 'all') {
+    return new Set(state.questions.map((q) => q.id));
+  }
+  if (state.draftStudentQuestionConfig.mode === 'preset50') {
+    return new Set(getDefaultStudentQuestionIds());
+  }
+  return new Set(state.draftStudentQuestionConfig.selectedIds || []);
+}
+
+function isStudentQuestionConfigDirty() {
+  if (!state.studentQuestionConfig || !state.draftStudentQuestionConfig) return false;
+  if (state.studentQuestionConfig.mode !== state.draftStudentQuestionConfig.mode) return true;
+  if (state.studentQuestionConfig.orderMode !== state.draftStudentQuestionConfig.orderMode) return true;
+  if (state.draftStudentQuestionConfig.mode === 'custom') {
+    const savedSet = new Set(state.studentQuestionConfig.selectedIds || []);
+    const draftSet = new Set(state.draftStudentQuestionConfig.selectedIds || []);
+    if (savedSet.size !== draftSet.size) return true;
+    for (const id of savedSet) {
+      if (!draftSet.has(id)) return true;
+    }
+  }
+  return false;
+}
+
+function updateStudentQuestionDirtyState() {
+  const dirty = isStudentQuestionConfigDirty();
+  const badge = document.getElementById('student-q-dirty-badge');
+  const cancelBtn = document.getElementById('btn-cancel-student-q');
+  if (badge) {
+    badge.textContent = dirty ? 'Perubahan belum disimpan' : 'Tersimpan';
+    badge.classList.toggle('is-dirty', dirty);
+    badge.classList.toggle('is-saved', !dirty);
+  }
+  if (cancelBtn) {
+    cancelBtn.classList.toggle('hidden', !dirty);
+  }
+}
+
+function renderStudentQuestionMenu() {
+  if (!state.studentQuestionConfig) loadStudentQuestionConfig();
+  const draft = state.draftStudentQuestionConfig;
+  const activeSet = getDraftSelectedQuestionIdSet();
+
+  const countEl = document.getElementById('admin-student-q-count');
+  const totalEl = document.getElementById('admin-student-q-total');
+  const allCountEl = document.getElementById('student-q-all-count');
+  if (countEl) countEl.textContent = String(activeSet.size);
+  if (totalEl) totalEl.textContent = String(state.questions.length);
+  if (allCountEl) allCountEl.textContent = String(state.questions.length);
+
+  document.querySelectorAll('input[name="student-q-mode"]').forEach((radio) => {
+    radio.checked = radio.value === draft.mode;
+  });
+
+  const orderSel = document.getElementById('student-q-order-mode');
+  if (orderSel) orderSel.value = draft.orderMode || 'shuffle';
+
+  const randomInput = document.getElementById('student-q-random-count');
+  if (randomInput) {
+    randomInput.max = String(Math.max(1, state.questions.length));
+    if (!randomInput.value) {
+      randomInput.value = String(Math.min(DEFAULT_STUDENT_QUESTION_COUNT, state.questions.length));
+    }
+  }
+
+  updateStudentQuestionDirtyState();
+}
+
+function handleRandomPickStudentQuestions() {
+  const input = document.getElementById('student-q-random-count');
+  const count = Number(input?.value);
+  const maxTotal = state.questions.length;
+  if (!Number.isInteger(count) || count < 1 || count > maxTotal) {
+    showToast(`Masukkan jumlah soal acak antara 1 sampai ${maxTotal}.`, 'error');
+    return;
+  }
+  const picked = shuffleArray(state.questions.map((q) => q.id)).slice(0, count);
+  state.draftStudentQuestionConfig.mode = 'custom';
+  state.draftStudentQuestionConfig.selectedIds = picked;
+  renderStudentQuestionMenu();
+  renderAdminQuestionList();
+  showToast(`${count} soal dipilih acak dalam draf. Klik Simpan Perubahan untuk menerapkan.`, 'default');
+}
+
+function handleCancelStudentQuestionsConfig() {
+  if (!state.studentQuestionConfig) loadStudentQuestionConfig();
+  state.draftStudentQuestionConfig = {
+    mode: state.studentQuestionConfig.mode,
+    selectedIds: [...(state.studentQuestionConfig.selectedIds || [])],
+    orderMode: state.studentQuestionConfig.orderMode || 'shuffle',
+  };
+  renderStudentQuestionMenu();
+  renderAdminQuestionList();
+  showToast('Perubahan soal siswa yang belum disimpan dibatalkan.', 'default');
+}
+
+function handleSaveStudentQuestionsConfig() {
+  if (!state.draftStudentQuestionConfig) loadStudentQuestionConfig();
+  const validIds = new Set(state.questions.map((q) => q.id));
+  const cleanedIds = (state.draftStudentQuestionConfig.selectedIds || []).filter((id) => validIds.has(id));
+  const mode = state.draftStudentQuestionConfig.mode;
+
+  if (mode === 'custom' && cleanedIds.length === 0) {
+    showToast('Pilih minimal 1 soal yang akan dikerjakan oleh siswa sebelum menyimpan.', 'error');
+    return;
+  }
+
+  let finalIds = cleanedIds;
+  if (mode === 'all') {
+    finalIds = state.questions.map((q) => q.id);
+  } else if (mode === 'preset50') {
+    finalIds = getDefaultStudentQuestionIds();
+  }
+
+  state.studentQuestionConfig = {
+    mode,
+    selectedIds: finalIds,
+    orderMode: state.draftStudentQuestionConfig.orderMode === 'ordered' ? 'ordered' : 'shuffle',
+    version: 2,
+    userCustomized: true,
+    updatedAt: new Date().toISOString(),
+  };
+
+  writeStorage(STORAGE_KEYS.STUDENT_QUESTIONS, state.studentQuestionConfig);
+  state.draftStudentQuestionConfig = {
+    mode: state.studentQuestionConfig.mode,
+    selectedIds: [...state.studentQuestionConfig.selectedIds],
+    orderMode: state.studentQuestionConfig.orderMode,
+  };
+
+  // Clear unfinished draft session so new question set takes effect cleanly
+  if (state.session) {
+    removeStorage(STORAGE_KEYS.SESSION);
+    state.session = null;
+  }
+
+  renderStudentQuestionMenu();
+  renderAdminQuestionList();
+  updateGlobalMetaCounts();
+  updateTopbar();
+
+  const activeCount = getActiveStudentQuestions().length;
+  showToast(`Perubahan soal untuk siswa berhasil disimpan (${activeCount} soal aktif).`, 'success');
+}
+
+function resetStudentQuestionConfigToDefault() {
+  const defaultIds = getDefaultStudentQuestionIds();
+  state.studentQuestionConfig = {
+    mode: 'preset50',
+    selectedIds: defaultIds,
+    orderMode: state.studentQuestionConfig?.orderMode || 'shuffle',
+    version: 2,
+    userCustomized: false,
+    updatedAt: new Date().toISOString(),
+  };
+  state.draftStudentQuestionConfig = {
+    mode: 'preset50',
+    selectedIds: [...defaultIds],
+    orderMode: state.studentQuestionConfig.orderMode,
+  };
+  writeStorage(STORAGE_KEYS.STUDENT_QUESTIONS, state.studentQuestionConfig);
+}
+
 function getFilteredAdminQuestions() {
   const search = (document.getElementById('admin-q-search').value || '').trim().toLowerCase();
   const typeFilter = document.getElementById('admin-q-filter-type').value;
   const topicFilter = document.getElementById('admin-q-filter-topic').value;
+  const statusFilter = document.getElementById('admin-q-filter-student-status')?.value || 'all';
+  const activeSet = getDraftSelectedQuestionIdSet();
 
   const list = state.questions.filter((q) => {
     const matchSearch = !search || q.question.toLowerCase().includes(search) || q.id.toLowerCase().includes(search);
     const matchType = typeFilter === 'all' || q.type === typeFilter;
     const matchTopic = topicFilter === 'all' || q.topic === topicFilter;
-    return matchSearch && matchType && matchTopic;
+    const isSelected = activeSet.has(q.id);
+    const matchStatus =
+      statusFilter === 'all' ||
+      (statusFilter === 'active' && isSelected) ||
+      (statusFilter === 'excluded' && !isSelected);
+    return matchSearch && matchType && matchTopic && matchStatus;
   });
 
   return {
@@ -3085,10 +3565,56 @@ function getFilteredAdminQuestions() {
   };
 }
 
+function getAvailableTopics(extraTopic = '') {
+  const seen = new Set();
+  const list = [];
+  const addTopic = (t) => {
+    const cleaned = String(t || '').trim();
+    if (cleaned && !seen.has(cleaned)) {
+      seen.add(cleaned);
+      list.push(cleaned);
+    }
+  };
+
+  (state.settings?.syllabusItems || []).forEach(addTopic);
+  (state.questions || []).forEach((q) => addTopic(q.topic));
+  if (extraTopic) addTopic(extraTopic);
+  if (list.length === 0) TOPICS.forEach(addTopic);
+  return list;
+}
+
+function syncTopicSelectElements(extraTopic = '') {
+  const available = getAvailableTopics(extraTopic);
+
+  const filterSel = document.getElementById('admin-q-filter-topic');
+  if (filterSel) {
+    const prevVal = filterSel.value || 'all';
+    filterSel.innerHTML = [
+      '<option value="all">Semua Materi</option>',
+      ...available.map((t) => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`),
+    ].join('');
+    filterSel.value = prevVal === 'all' || available.includes(prevVal) ? prevVal : 'all';
+  }
+
+  const editSel = document.getElementById('edit-q-topic');
+  if (editSel) {
+    const prevEditVal = editSel.value;
+    editSel.innerHTML = available
+      .map((t) => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`)
+      .join('');
+    if (prevEditVal && available.includes(prevEditVal)) {
+      editSel.value = prevEditVal;
+    }
+  }
+}
+
 function renderAdminQuestionList() {
   document.getElementById('admin-q-count').textContent = String(state.questions.length);
+  syncTopicSelectElements();
+  renderStudentQuestionMenu();
 
   const { list: filtered } = getFilteredAdminQuestions();
+  const activeSet = getDraftSelectedQuestionIdSet();
 
   const listEl = document.getElementById('admin-question-list');
   if (filtered.length === 0) {
@@ -3097,9 +3623,10 @@ function renderAdminQuestionList() {
   }
 
   listEl.innerHTML = filtered
-    .map(
-      (q, index) => `
-    <div class="admin-q-item">
+    .map((q, index) => {
+      const isSelected = activeSet.has(q.id);
+      return `
+    <div class="admin-q-item${isSelected ? '' : ' is-excluded'}">
       <div class="admin-q-content">
         <div class="admin-q-meta">
           <span class="mono-text"><strong>${escapeHtml(q.id)}</strong></span>
@@ -3109,6 +3636,7 @@ function renderAdminQuestionList() {
           <span>${escapeHtml(TYPE_LABELS[q.type] || q.type)}</span>
           <span>·</span>
           <span>${escapeHtml(q.topic)}</span>
+          ${isSelected ? '' : '<span class="q-excluded-tag">Tidak Diujikan</span>'}
         </div>
         <p class="admin-q-text">${escapeHtml(q.question)}</p>
         <div class="admin-q-answer">
@@ -3116,13 +3644,42 @@ function renderAdminQuestionList() {
         </div>
       </div>
       <div class="admin-q-actions">
-        <button type="button" class="btn btn-outline btn-sm" data-edit-q="${q.id}">Edit Soal / Kunci</button>
-        <button type="button" class="btn btn-outline btn-sm btn-danger-outline" data-delete-q="${q.id}">Hapus</button>
+        <label class="q-student-toggle">
+          <input type="checkbox" data-toggle-student-q="${escapeHtml(q.id)}" ${isSelected ? 'checked' : ''} />
+          <span>Dikerjakan Siswa</span>
+        </label>
+        <button type="button" class="btn btn-outline btn-sm" data-edit-q="${escapeHtml(q.id)}">Edit Soal / Kunci</button>
+        <button type="button" class="btn btn-outline btn-sm btn-danger-outline" data-delete-q="${escapeHtml(q.id)}">Hapus</button>
       </div>
     </div>
-  `
-    )
+  `;
+    })
     .join('');
+
+  listEl.querySelectorAll('[data-toggle-student-q]').forEach((checkbox) => {
+    checkbox.addEventListener('change', (e) => {
+      const qId = e.target.dataset.toggleStudentQ;
+      if (!state.draftStudentQuestionConfig) loadStudentQuestionConfig();
+
+      if (state.draftStudentQuestionConfig.mode === 'all') {
+        state.draftStudentQuestionConfig.mode = 'custom';
+        state.draftStudentQuestionConfig.selectedIds = state.questions.map((q) => q.id);
+      } else if (state.draftStudentQuestionConfig.mode === 'preset50') {
+        state.draftStudentQuestionConfig.mode = 'custom';
+        state.draftStudentQuestionConfig.selectedIds = getDefaultStudentQuestionIds();
+      }
+
+      const idSet = new Set(state.draftStudentQuestionConfig.selectedIds || []);
+      if (e.target.checked) {
+        idSet.add(qId);
+      } else {
+        idSet.delete(qId);
+      }
+      state.draftStudentQuestionConfig.selectedIds = Array.from(idSet);
+      renderStudentQuestionMenu();
+      renderAdminQuestionList();
+    });
+  });
 
   listEl.querySelectorAll('[data-edit-q]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -3140,6 +3697,13 @@ function renderAdminQuestionList() {
         () => {
           state.questions = state.questions.filter((item) => item.id !== qId);
           writeStorage(STORAGE_KEYS.QUESTIONS, state.questions);
+          if (state.studentQuestionConfig?.mode === 'custom') {
+            state.studentQuestionConfig.selectedIds = state.studentQuestionConfig.selectedIds.filter((id) => id !== qId);
+            writeStorage(STORAGE_KEYS.STUDENT_QUESTIONS, state.studentQuestionConfig);
+          }
+          if (state.draftStudentQuestionConfig?.mode === 'custom') {
+            state.draftStudentQuestionConfig.selectedIds = state.draftStudentQuestionConfig.selectedIds.filter((id) => id !== qId);
+          }
           updateGlobalMetaCounts();
           renderAdminQuestionList();
           showToast(`Soal ${qId} berhasil dihapus.`, 'success');
@@ -3229,12 +3793,14 @@ function openQuestionEditorModal(question) {
   const errEl = document.getElementById('question-editor-error');
   errEl.classList.add('hidden');
   const quickBar = document.getElementById('pg-quick-template-bar');
+  const availableTopics = getAvailableTopics(question?.topic || '');
+  syncTopicSelectElements(question?.topic || '');
 
   if (question) {
     document.getElementById('modal-q-title').textContent = `Edit Soal & Kunci (${question.id})`;
     document.getElementById('edit-q-id').value = question.id;
     document.getElementById('edit-q-type').value = question.type;
-    document.getElementById('edit-q-topic').value = question.topic;
+    document.getElementById('edit-q-topic').value = question.topic || availableTopics[0] || TOPICS[0];
     document.getElementById('edit-q-text').value = question.question;
     document.getElementById('edit-q-explanation').value = question.explanation || '';
     quickBar.classList.add('hidden');
@@ -3243,7 +3809,7 @@ function openQuestionEditorModal(question) {
     document.getElementById('modal-q-title').textContent = 'Tambah Soal Baru';
     document.getElementById('edit-q-id').value = '';
     document.getElementById('edit-q-type').value = 'pg';
-    document.getElementById('edit-q-topic').value = TOPICS[0];
+    document.getElementById('edit-q-topic').value = availableTopics[0] || TOPICS[0];
     document.getElementById('edit-q-text').value = '';
     document.getElementById('edit-q-explanation').value = '';
     quickBar.classList.remove('hidden');
@@ -3531,6 +4097,9 @@ function handleImportPgTemplate() {
   }
 
   writeStorage(STORAGE_KEYS.QUESTIONS, state.questions);
+  if (mode === 'replace') {
+    resetStudentQuestionConfigToDefault();
+  }
   updateGlobalMetaCounts();
   renderAdminQuestionList();
   closeModal('modal-pg-template');
@@ -3887,6 +4456,9 @@ function handleConfirmBankImport() {
   }
 
   writeStorage(STORAGE_KEYS.QUESTIONS, state.questions);
+  if (mode === 'replace') {
+    resetStudentQuestionConfigToDefault();
+  }
 
   // Clear unfinished active draft session to avoid stale question IDs
   if (state.session) {
@@ -3902,6 +4474,10 @@ function handleConfirmBankImport() {
     state.settings = {
       subject: importedSettings.subject || state.settings?.subject || DEFAULT_SETTINGS.subject,
       mainTopic: importedSettings.mainTopic || state.settings?.mainTopic || DEFAULT_SETTINGS.mainTopic,
+      heroSubtitle:
+        typeof importedSettings.heroSubtitle === 'string'
+          ? importedSettings.heroSubtitle
+          : state.settings?.heroSubtitle || DEFAULT_SETTINGS.heroSubtitle,
       durationMinutes:
         Number(importedSettings.durationMinutes) > 0
           ? Number(importedSettings.durationMinutes)
@@ -3913,7 +4489,7 @@ function handleConfirmBankImport() {
     };
     writeStorage(STORAGE_KEYS.SETTINGS, state.settings);
     renderAdminSyllabusPanel();
-    renderLoginSyllabus();
+    applySettingsToUI();
   }
 
   updateGlobalMetaCounts();
@@ -4082,6 +4658,13 @@ function handleSaveQuestion(e) {
       answer,
       explanation,
     });
+    if (state.studentQuestionConfig?.mode === 'custom') {
+      state.studentQuestionConfig.selectedIds.push(newId);
+      writeStorage(STORAGE_KEYS.STUDENT_QUESTIONS, state.studentQuestionConfig);
+    }
+    if (state.draftStudentQuestionConfig?.mode === 'custom') {
+      state.draftStudentQuestionConfig.selectedIds.push(newId);
+    }
     showToast(`Soal baru ${newId} berhasil ditambahkan.`, 'success');
   }
 
@@ -4089,6 +4672,305 @@ function handleSaveQuestion(e) {
   updateGlobalMetaCounts();
   closeModal('modal-question-form');
   renderAdminQuestionList();
+}
+
+/* ==================== MENU GENERATE AI SESUAI CAKUPAN MATERI ==================== */
+function renderAiGeneratorPanel() {
+  if (!state.settings) loadExamSettings();
+  const panel = document.getElementById('ai-generate-menu-panel');
+  if (panel) panel.classList.toggle('hidden', !state.aiGenMenuOpen);
+
+  const subjectEl = document.getElementById('ai-ctx-subject');
+  const topicEl = document.getElementById('ai-ctx-topic');
+  const countEl = document.getElementById('ai-ctx-syllabus-count');
+  const listEl = document.getElementById('ai-ctx-syllabus-list');
+
+  if (subjectEl) subjectEl.textContent = state.settings.subject;
+  if (topicEl) topicEl.textContent = state.settings.mainTopic;
+  if (countEl) countEl.textContent = String(state.settings.syllabusItems.length);
+  if (listEl) {
+    listEl.innerHTML = state.settings.syllabusItems
+      .map((item) => `<li>${escapeHtml(item)}</li>`)
+      .join('');
+  }
+
+  const targetMode = document.getElementById('ai-gen-target-mode')?.value || 'bank100';
+  const customBox = document.getElementById('ai-gen-custom-counts');
+  if (customBox) customBox.classList.toggle('hidden', targetMode !== 'custom');
+
+  const undoBtn = document.getElementById('btn-undo-ai-gen');
+  if (undoBtn) {
+    undoBtn.classList.toggle('hidden', !Array.isArray(state.previousQuestionsBeforeAi) || state.aiGenerating);
+  }
+
+  const statusNote = document.getElementById('ai-gen-status-note');
+  if (statusNote) {
+    statusNote.textContent = isSyllabusDirty()
+      ? 'Catatan: Ada perubahan di Tab Cakupan Materi yang belum disimpan. Simpan terlebih dahulu agar digunakan AI.'
+      : 'Menggunakan pengaturan Cakupan Materi terbaru yang tersimpan di Portal Admin.';
+  }
+}
+
+function getAiGenerationTargetCounts() {
+  const mode = document.getElementById('ai-gen-target-mode')?.value || 'bank100';
+  if (mode === 'bank100') {
+    return { pg: 70, pg_kompleks: 10, isian: 10, benar_salah: 10 };
+  }
+  if (mode === 'bank65') {
+    return { pg: 50, pg_kompleks: 5, isian: 5, benar_salah: 5 };
+  }
+  if (mode === 'student50') {
+    return { pg: 40, pg_kompleks: 4, isian: 3, benar_salah: 3 };
+  }
+  if (mode === 'pg50') {
+    return { pg: 50, pg_kompleks: 0, isian: 0, benar_salah: 0 };
+  }
+
+  const pg = Math.max(0, Math.min(100, Number(document.getElementById('ai-count-pg')?.value || 0)));
+  const pg_kompleks = Math.max(0, Math.min(25, Number(document.getElementById('ai-count-pgk')?.value || 0)));
+  const isian = Math.max(0, Math.min(25, Number(document.getElementById('ai-count-isian')?.value || 0)));
+  const benar_salah = Math.max(0, Math.min(25, Number(document.getElementById('ai-count-bs')?.value || 0)));
+  return { pg, pg_kompleks, isian, benar_salah };
+}
+
+function buildAiGenerationBatches(counts) {
+  const MAX_PER_BATCH = 17;
+  const queue = [];
+  (['pg', 'pg_kompleks', 'isian', 'benar_salah']).forEach((type) => {
+    const count = Math.floor(Number(counts[type] || 0));
+    if (count > 0) queue.push({ type, remaining: count });
+  });
+
+  const batches = [];
+  let currentSpecs = [];
+  let currentTotal = 0;
+
+  for (const item of queue) {
+    let rem = item.remaining;
+    while (rem > 0) {
+      const space = MAX_PER_BATCH - currentTotal;
+      if (space <= 0) {
+        batches.push(currentSpecs);
+        currentSpecs = [];
+        currentTotal = 0;
+        continue;
+      }
+      const take = Math.min(rem, space);
+      currentSpecs.push({ type: item.type, count: take });
+      currentTotal += take;
+      rem -= take;
+
+      if (currentTotal >= MAX_PER_BATCH) {
+        batches.push(currentSpecs);
+        currentSpecs = [];
+        currentTotal = 0;
+      }
+    }
+  }
+
+  if (currentSpecs.length > 0) {
+    batches.push(currentSpecs);
+  }
+  return batches;
+}
+
+function promptGenerateAiQuestions() {
+  if (state.aiGenerating) return;
+  if (!state.settings) loadExamSettings();
+
+  const errEl = document.getElementById('ai-gen-error');
+  if (errEl) errEl.classList.add('hidden');
+
+  const counts = getAiGenerationTargetCounts();
+  const totalCount = counts.pg + counts.pg_kompleks + counts.isian + counts.benar_salah;
+
+  if (!Number.isInteger(totalCount) || totalCount < 1 || totalCount > 100) {
+    if (errEl) {
+      errEl.textContent = 'Total jumlah soal yang digenerate harus antara 1 sampai 100 butir.';
+      errEl.classList.remove('hidden');
+    }
+    return;
+  }
+
+  if (!state.settings.subject || !state.settings.mainTopic || state.settings.syllabusItems.length === 0) {
+    if (errEl) {
+      errEl.textContent = 'Mata Pelajaran, Materi Pokok, dan Cakupan Materi wajib terisi di Tab Cakupan Materi.';
+      errEl.classList.remove('hidden');
+    }
+    return;
+  }
+
+  openConfirmModal(
+    'Generate & Ubah Bank Soal dengan AI?',
+    `AI akan menyusun ${totalCount} butir soal baru (${counts.pg} PG, ${counts.pg_kompleks} PG Kompleks, ${counts.isian} Isian, ${counts.benar_salah} Benar/Salah) sesuai Mata Pelajaran "${state.settings.subject}" dan Cakupan Materi aktif, lalu menggantikan isi Bank Soal saat ini.`,
+    () => {
+      executeAiQuestionGeneration(counts, totalCount);
+    }
+  );
+}
+
+function setAiGeneratingUiState(isRunning, progressPct = 0, progressLabel = '') {
+  state.aiGenerating = isRunning;
+  const runBtn = document.getElementById('btn-run-ai-generate');
+  const cancelBtn = document.getElementById('btn-cancel-ai-gen');
+  const undoBtn = document.getElementById('btn-undo-ai-gen');
+  const progressBox = document.getElementById('ai-gen-progress-box');
+  const progressFill = document.getElementById('ai-gen-progress-fill');
+  const progressText = document.getElementById('ai-gen-progress-text');
+  const progressPctEl = document.getElementById('ai-gen-progress-pct');
+
+  if (runBtn) {
+    runBtn.disabled = isRunning;
+    runBtn.textContent = isRunning ? 'Sedang Menggenerate Soal...' : 'Generate & Ubah Soal AI';
+  }
+  if (cancelBtn) cancelBtn.classList.toggle('hidden', !isRunning);
+  if (undoBtn) {
+    undoBtn.classList.toggle('hidden', isRunning || !Array.isArray(state.previousQuestionsBeforeAi));
+  }
+  if (progressBox) progressBox.classList.toggle('hidden', !isRunning);
+  if (progressFill) progressFill.style.width = `${Math.min(100, Math.max(0, progressPct))}%`;
+  if (progressText && progressLabel) progressText.textContent = progressLabel;
+  if (progressPctEl) progressPctEl.textContent = `${Math.round(progressPct)}%`;
+}
+
+function cancelAiQuestionGeneration() {
+  if (state.aiAbortController) {
+    state.aiAbortController.abort();
+    state.aiAbortController = null;
+  }
+}
+
+async function executeAiQuestionGeneration(counts, totalCount) {
+  const errEl = document.getElementById('ai-gen-error');
+  if (errEl) errEl.classList.add('hidden');
+
+  const difficulty = document.getElementById('ai-gen-difficulty')?.value || 'standar';
+  const customInstruction = (document.getElementById('ai-gen-custom-instruction')?.value || '').trim();
+  const batches = buildAiGenerationBatches(counts);
+  const abortController = new AbortController();
+  state.aiAbortController = abortController;
+
+  const collected = [];
+  setAiGeneratingUiState(true, 4, `Menyiapkan ${batches.length} tahap generate AI (${totalCount} soal)...`);
+
+  try {
+    for (let i = 0; i < batches.length; i++) {
+      const batchSpecs = batches[i];
+      const batchSize = batchSpecs.reduce((sum, s) => sum + s.count, 0);
+      const startPct = Math.round((i / batches.length) * 90) + 5;
+      setAiGeneratingUiState(
+        true,
+        startPct,
+        `Menghasilkan tahap ${i + 1} dari ${batches.length} (${collected.length + 1}–${Math.min(totalCount, collected.length + batchSize)} dari ${totalCount} soal)...`
+      );
+
+      const response = await fetch('/api/ai/generate-questions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'CBT-MAZRO-Admin',
+        },
+        signal: abortController.signal,
+        body: JSON.stringify({
+          subject: state.settings.subject,
+          mainTopic: state.settings.mainTopic,
+          syllabusItems: state.settings.syllabusItems,
+          batchSpecs,
+          difficulty,
+          customInstruction,
+          batchIndex: i + 1,
+          totalBatches: batches.length,
+          avoidSummaries: collected.map((q) => q.question.slice(0, 100)).slice(-45),
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || `Gagal memproses tahap ${i + 1} (HTTP ${response.status}).`);
+      }
+      if (!Array.isArray(data.questions) || data.questions.length === 0) {
+        throw new Error(`AI tidak mengembalikan soal valid pada tahap ${i + 1}.`);
+      }
+
+      data.questions.forEach((q) => collected.push(q));
+    }
+
+    const finalQuestions = collected.map((q, idx) => ({
+      id: `Q${String(idx + 1).padStart(3, '0')}`,
+      type: q.type,
+      topic: q.topic,
+      question: q.question,
+      ...(q.options ? { options: q.options } : {}),
+      answer: q.answer,
+      explanation: q.explanation || '',
+    }));
+
+    state.previousQuestionsBeforeAi = [...state.questions];
+    state.questions = finalQuestions;
+    writeStorage(STORAGE_KEYS.QUESTIONS, state.questions);
+
+    resetStudentQuestionConfigToDefault();
+    if (state.session) {
+      removeStorage(STORAGE_KEYS.SESSION);
+      state.session = null;
+    }
+
+    setAiGeneratingUiState(false, 100, 'Selesai!');
+    state.aiAbortController = null;
+
+    syncTopicSelectElements();
+    updateGlobalMetaCounts();
+    renderStudentQuestionMenu();
+    renderAdminQuestionList();
+    renderAiGeneratorPanel();
+    updateTopbar();
+
+    const activeCount = getActiveStudentQuestions().length;
+    showToast(
+      `Berhasil menggenerate ${finalQuestions.length} soal AI sesuai Cakupan Materi "${state.settings.subject}" (${activeCount} soal aktif untuk siswa).`,
+      'success'
+    );
+  } catch (err) {
+    state.aiAbortController = null;
+    setAiGeneratingUiState(false, 0, '');
+    if (err && err.name === 'AbortError') {
+      showToast('Proses generate soal AI dihentikan. Bank soal sebelumnya tetap aman.', 'default');
+      return;
+    }
+    const msg = err instanceof Error ? err.message : 'Terjadi kesalahan saat menggenerate soal AI.';
+    if (errEl) {
+      errEl.textContent = msg;
+      errEl.classList.remove('hidden');
+    }
+    showToast(msg, 'error');
+  }
+}
+
+function undoAiQuestionGeneration() {
+  if (!Array.isArray(state.previousQuestionsBeforeAi) || state.previousQuestionsBeforeAi.length === 0) {
+    return;
+  }
+  openConfirmModal(
+    'Kembalikan Soal Sebelum Generate AI?',
+    `Bank soal akan dikembalikan ke ${state.previousQuestionsBeforeAi.length} soal sebelumnya.`,
+    () => {
+      state.questions = [...state.previousQuestionsBeforeAi];
+      state.previousQuestionsBeforeAi = null;
+      writeStorage(STORAGE_KEYS.QUESTIONS, state.questions);
+      resetStudentQuestionConfigToDefault();
+      if (state.session) {
+        removeStorage(STORAGE_KEYS.SESSION);
+        state.session = null;
+      }
+      syncTopicSelectElements();
+      updateGlobalMetaCounts();
+      renderStudentQuestionMenu();
+      renderAdminQuestionList();
+      renderAiGeneratorPanel();
+      updateTopbar();
+      showToast('Bank soal berhasil dikembalikan ke kondisi sebelum generate AI.', 'success');
+    }
+  );
 }
 
 /* ==================== UI HELPERS (MODALS, TOAST, FORMAT) ==================== */

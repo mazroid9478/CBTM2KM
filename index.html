@@ -74,16 +74,19 @@
           <div class="login-hero">
             <p class="kicker">Evaluasi Digital Terpadu M2KM · Tahun Ajaran 2026/2027</p>
             <h1 class="hero-title" id="login-heading">
-              Ujian Online Informatika dan Berpikir Komputasional
+              Ujian Online INFORMATIKA
             </h1>
-            <p class="hero-subtitle">
-              Platform Computer Based Test (CBT) yang dirancang untuk mengukur pemahaman konsep keilmuan Informatika, keterampilan generik, serta penerapan algoritma pencarian, pengurutan, tumpukan, dan antrean.
-            </p>
 
             <div class="syllabus-card">
               <div class="syllabus-header">
                 <h2 class="section-label">Cakupan Materi Ujian</h2>
-                <span class="meta-text" id="login-question-count">65 Butir Soal · 120 Menit</span>
+                <span class="meta-text" id="login-question-count">50 Butir Soal · 120 Menit</span>
+              </div>
+              <div class="login-meta-strip">
+                <div>
+                  <span class="meta-text">Mata Pelajaran:</span>
+                  <strong id="login-subject-label">INFORMATIKA</strong>
+                </div>
               </div>
               <ul class="syllabus-list" id="login-syllabus-list">
                 <li>Apa Itu Informatika dan delapan pilar keilmuannya</li>
@@ -250,7 +253,7 @@
                 </div>
                 <div class="info-spec-row">
                   <dt>Jumlah Soal</dt>
-                  <dd class="tabular-nums"><strong id="dash-total-soal">65</strong> Butir Soal</dd>
+                  <dd class="tabular-nums"><strong id="dash-total-soal">50</strong> Butir Soal</dd>
                 </div>
                 <div class="info-spec-row">
                   <dt>Waktu Ujian</dt>
@@ -319,7 +322,7 @@
             <div class="exam-progress-wrap">
               <div class="exam-progress-labels">
                 <span>Progres Pengerjaan</span>
-                <span class="tabular-nums" id="exam-progress-text">0 / 65 Terjawab (0%)</span>
+                <span class="tabular-nums" id="exam-progress-text">0 / 50 Terjawab (0%)</span>
               </div>
               <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="exam-progress-bar-wrap">
                 <div class="progress-fill" id="exam-progress-fill" style="width: 0%"></div>
@@ -348,7 +351,7 @@
             <article class="card question-card" id="question-card">
               <div class="question-meta-row">
                 <div class="question-meta-left">
-                  <span class="question-number-label tabular-nums" id="q-number-label">Soal 1 dari 65</span>
+                  <span class="question-number-label tabular-nums" id="q-number-label">Soal 1 dari 50</span>
                   <span aria-hidden="true" class="meta-sep">·</span>
                   <span class="question-type-label" id="q-type-label">Pilihan Ganda</span>
                   <span aria-hidden="true" class="meta-sep">·</span>
@@ -404,7 +407,7 @@
             <div class="card navigator-card">
               <div class="navigator-header">
                 <h3 class="navigator-title">Navigasi Nomor Soal</h3>
-                <span class="meta-text tabular-nums" id="nav-summary-count">0/65</span>
+                <span class="meta-text tabular-nums" id="nav-summary-count">0/50</span>
               </div>
 
               <div class="navigator-legend">
@@ -461,11 +464,15 @@
               </div>
               <div>
                 <dt>Mata Pelajaran</dt>
-                <dd>INFORMATIKA</dd>
+                <dd id="sub-subject">INFORMATIKA</dd>
+              </div>
+              <div>
+                <dt>Materi Pokok</dt>
+                <dd id="sub-main-topic">Informatika &amp; Ketrampilan Umum Serta Berpikir Komputasional</dd>
               </div>
               <div>
                 <dt>Soal Terjawab</dt>
-                <dd class="tabular-nums" id="sub-answered">0 / 65</dd>
+                <dd class="tabular-nums" id="sub-answered">0 / 50</dd>
               </div>
               <div>
                 <dt>Waktu Selesai</dt>
@@ -551,11 +558,11 @@
                 </div>
                 <div>
                   <dt>Mata Pelajaran</dt>
-                  <dd>INFORMATIKA</dd>
+                  <dd id="res-subject">INFORMATIKA</dd>
                 </div>
                 <div>
-                  <dt>Materi</dt>
-                  <dd>Informatika &amp; Ketrampilan Umum Serta Berpikir Komputasional</dd>
+                  <dt>Materi Pokok</dt>
+                  <dd id="res-main-topic">Informatika &amp; Ketrampilan Umum Serta Berpikir Komputasional</dd>
                 </div>
                 <div>
                   <dt>Waktu Selesai</dt>
@@ -807,9 +814,17 @@
               <div class="admin-toolbar">
                 <div>
                   <h2 class="card-title">Kelola Bank Soal (<span class="tabular-nums" id="admin-q-count">0</span> Soal)</h2>
-                  <p class="card-desc">Tambah soal baru, ubah materi/pertanyaan, atur kunci jawaban, atau hapus butir soal.</p>
+                  <p class="card-desc">
+                    Tambah soal baru, ubah materi/pertanyaan, atur kunci jawaban, serta kelola soal mana saja yang akan dikerjakan oleh siswa.
+                  </p>
                 </div>
                 <div class="admin-toolbar-controls">
+                  <button type="button" class="btn btn-primary btn-sm" id="btn-toggle-ai-gen-menu">
+                    Menu Generate AI
+                  </button>
+                  <button type="button" class="btn btn-outline btn-sm" id="btn-toggle-student-q-menu">
+                    Menu Perubahan Soal Siswa
+                  </button>
                   <button type="button" class="btn btn-outline btn-sm" id="btn-shuffle-question-bank">
                     Acak Soal &amp; Jawaban
                   </button>
@@ -831,7 +846,203 @@
                 </div>
               </div>
 
-              <div class="admin-filter-row">
+              <!-- Menu Generate Soal AI Sesuai Cakupan Materi (Khusus Portal Admin) -->
+              <div class="ai-gen-menu-card" id="ai-generate-menu-panel">
+                <div class="ai-gen-menu-header">
+                  <div>
+                    <h3 class="section-label">Menu Generate AI — Ubah Soal Sesuai Cakupan Materi</h3>
+                    <p class="meta-text">
+                      Menghasilkan dan mengubah butir soal pada Bank Soal secara otomatis menggunakan AI agar sesuai dengan <strong>Mata Pelajaran</strong>, <strong>Materi Pokok</strong>, dan <strong>Cakupan Materi</strong> yang telah diubah.
+                    </p>
+                  </div>
+                  <button type="button" class="btn btn-outline btn-sm" id="btn-ai-goto-syllabus">
+                    Edit Cakupan Materi
+                  </button>
+                </div>
+
+                <div class="ai-ctx-box" id="ai-ctx-box">
+                  <div class="ai-ctx-meta-row">
+                    <div>
+                      <span class="meta-text">Mata Pelajaran:</span>
+                      <strong id="ai-ctx-subject">INFORMATIKA</strong>
+                    </div>
+                    <div>
+                      <span class="meta-text">Materi Pokok:</span>
+                      <strong id="ai-ctx-topic">Informatika &amp; Ketrampilan Umum Serta Berpikir Komputasional</strong>
+                    </div>
+                  </div>
+                  <div class="ai-ctx-syllabus-wrap">
+                    <span class="meta-text">Cakupan Materi Aktif (<span class="tabular-nums" id="ai-ctx-syllabus-count">6</span> Poin):</span>
+                    <ul class="ai-ctx-syllabus-list" id="ai-ctx-syllabus-list"></ul>
+                  </div>
+                </div>
+
+                <div class="ai-gen-controls-grid">
+                  <div class="form-group">
+                    <label for="ai-gen-target-mode" class="form-label">Target Perubahan Bank Soal</label>
+                    <select id="ai-gen-target-mode" class="form-select input-compact">
+                      <option value="bank100">Seluruh Bank Soal — 100 Soal (70 PG, 10 PGK, 10 Isian, 10 B/S)</option>
+                      <option value="student50">Paket Ujian — 50 Soal (40 PG, 4 PGK, 3 Isian, 3 B/S)</option>
+                      <option value="pg50">50 Soal Pilihan Ganda (A–E) Saja</option>
+                      <option value="custom">Atur Jumlah Kustom per Jenis Soal</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="ai-gen-difficulty" class="form-label">Tingkat Kesulitan Soal</label>
+                    <select id="ai-gen-difficulty" class="form-select input-compact">
+                      <option value="standar">Standar Kurikulum (Seimbang C1–C4)</option>
+                      <option value="hots">HOTS (Studi Kasus &amp; Penalaran C4–C5)</option>
+                      <option value="dasar">Dasar (Pemahaman Konsep C1–C2)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="ai-gen-custom-counts hidden" id="ai-gen-custom-counts">
+                  <div class="form-group">
+                    <label for="ai-count-pg" class="form-label">Pilihan Ganda</label>
+                    <input type="number" id="ai-count-pg" class="form-input input-compact mono-input" min="0" max="100" value="70" />
+                  </div>
+                  <div class="form-group">
+                    <label for="ai-count-pgk" class="form-label">PG Kompleks</label>
+                    <input type="number" id="ai-count-pgk" class="form-input input-compact mono-input" min="0" max="25" value="10" />
+                  </div>
+                  <div class="form-group">
+                    <label for="ai-count-isian" class="form-label">Isian (Angka)</label>
+                    <input type="number" id="ai-count-isian" class="form-input input-compact mono-input" min="0" max="25" value="10" />
+                  </div>
+                  <div class="form-group">
+                    <label for="ai-count-bs" class="form-label">Benar / Salah</label>
+                    <input type="number" id="ai-count-bs" class="form-input input-compact mono-input" min="0" max="25" value="10" />
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="ai-gen-custom-instruction" class="form-label">Instruksi Tambahan untuk AI (Opsional)</label>
+                  <input
+                    type="text"
+                    id="ai-gen-custom-instruction"
+                    class="form-input input-compact"
+                    maxlength="400"
+                    placeholder="Contoh: Sesuaikan untuk jenjang SMA kelas X, gunakan bahasa yang lugas dan sertakan contoh kasus nyata."
+                  />
+                </div>
+
+                <div class="ai-gen-progress-box hidden" id="ai-gen-progress-box" aria-live="polite">
+                  <div class="ai-gen-progress-top">
+                    <span id="ai-gen-progress-text">Menyiapkan permintaan AI...</span>
+                    <span class="mono-text tabular-nums" id="ai-gen-progress-pct">0%</span>
+                  </div>
+                  <div class="progress-track">
+                    <div class="progress-fill" id="ai-gen-progress-fill" style="width: 0%"></div>
+                  </div>
+                </div>
+
+                <p class="form-error hidden" id="ai-gen-error" role="alert"></p>
+
+                <div class="ai-gen-menu-footer">
+                  <span class="meta-text" id="ai-gen-status-note">
+                    Menggunakan pengaturan Cakupan Materi terbaru yang tersimpan di Portal Admin.
+                  </span>
+                  <div class="ai-gen-actions">
+                    <button type="button" class="btn btn-outline btn-sm hidden" id="btn-cancel-ai-gen">
+                      Hentikan Proses
+                    </button>
+                    <button type="button" class="btn btn-outline btn-sm hidden" id="btn-undo-ai-gen">
+                      Kembalikan Soal Sebelumnya
+                    </button>
+                    <button type="button" class="btn btn-primary btn-sm" id="btn-run-ai-generate">
+                      Generate &amp; Ubah Soal AI
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Menu Perubahan Soal yang Akan Dikerjakan Siswa (Khusus Portal Admin) -->
+              <div class="student-q-menu-card" id="student-q-menu-panel">
+                <div class="student-q-menu-header">
+                  <div>
+                    <h3 class="section-label">Menu Perubahan Soal Siswa — Paket 50 Soal (Hanya di Portal Admin)</h3>
+                    <p class="meta-text" id="student-q-summary-text">
+                      Aktif dikerjakan siswa: <strong class="tabular-nums" id="admin-student-q-count">50</strong> dari <span class="tabular-nums" id="admin-student-q-total">100</span> soal di Bank Soal
+                    </p>
+                  </div>
+                  <span class="syllabus-status-badge is-saved" id="student-q-dirty-badge">Tersimpan</span>
+                </div>
+
+                <div class="student-q-controls-grid">
+                  <div class="form-group">
+                    <span class="form-label">Pilihan Soal untuk Siswa</span>
+                    <div class="template-mode-row">
+                      <label class="editor-key-pick">
+                        <input type="radio" name="student-q-mode" value="preset50" checked />
+                        <span>Paket 50 Soal (Default)</span>
+                      </label>
+                      <label class="editor-key-pick">
+                        <input type="radio" name="student-q-mode" value="custom" />
+                        <span>Pilih Soal Tertentu (Checklist)</span>
+                      </label>
+                      <label class="editor-key-pick">
+                        <input type="radio" name="student-q-mode" value="all" />
+                        <span>Semua Soal (<span id="student-q-all-count">100</span> Soal)</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="student-q-order-mode" class="form-label">Urutan Soal Saat Dikerjakan Siswa</label>
+                    <select id="student-q-order-mode" class="form-select input-compact">
+                      <option value="shuffle">Acak Urutan Soal (Tiap Siswa)</option>
+                      <option value="ordered">Berurutan Sesuai Daftar Bank Soal</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="student-q-random-count" class="form-label">Pilih Acak Jumlah Soal</label>
+                    <div class="student-q-random-row">
+                      <input
+                        type="number"
+                        id="student-q-random-count"
+                        class="form-input input-compact mono-input"
+                        min="1"
+                        max="500"
+                        value="50"
+                        placeholder="50"
+                      />
+                      <button type="button" class="btn btn-outline btn-sm" id="btn-student-q-random-pick">
+                        Pilih Acak
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="student-q-menu-footer">
+                  <div class="student-q-quick-actions">
+                    <button type="button" class="btn btn-outline btn-sm" id="btn-student-q-preset-50">
+                      Pilih 50 Soal
+                    </button>
+                    <button type="button" class="btn btn-outline btn-sm" id="btn-student-q-select-all">
+                      Pilih Semua
+                    </button>
+                    <button type="button" class="btn btn-outline btn-sm" id="btn-student-q-select-filtered">
+                      Pilih Hasil Filter
+                    </button>
+                    <button type="button" class="btn btn-outline btn-sm" id="btn-student-q-clear-all">
+                      Kosongkan Pilihan
+                    </button>
+                  </div>
+                  <div class="student-q-save-actions">
+                    <button type="button" class="btn btn-outline btn-sm hidden" id="btn-cancel-student-q">
+                      Batalkan
+                    </button>
+                    <button type="button" class="btn btn-primary btn-sm" id="btn-save-student-q">
+                      Simpan Perubahan
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="admin-filter-row admin-filter-row-4">
                 <input
                   type="search"
                   id="admin-q-search"
@@ -856,6 +1067,11 @@
                   <option value="Pengurutan (Sorting)">Pengurutan (Sorting)</option>
                   <option value="Tumpukan (Stack) dan Antrean (Queue)">Tumpukan (Stack) dan Antrean (Queue)</option>
                 </select>
+                <select id="admin-q-filter-student-status" class="form-select input-compact" aria-label="Filter status pengerjaan siswa">
+                  <option value="all">Semua Status Siswa</option>
+                  <option value="active">Aktif Dikerjakan Siswa</option>
+                  <option value="excluded">Tidak Diujikan</option>
+                </select>
               </div>
 
               <div class="admin-question-list" id="admin-question-list">
@@ -870,7 +1086,7 @@
               <div class="admin-toolbar">
                 <div>
                   <h2 class="card-title">Pengaturan Cakupan Materi Ujian</h2>
-                  <p class="card-desc">Ubah mata pelajaran, materi pokok, waktu ujian, serta daftar butir Cakupan Materi Ujian yang tampil di halaman Login dan Dashboard.</p>
+                  <p class="card-desc">Edit dan simpan Mata Pelajaran, Waktu Ujian (Menit), Materi Pokok, serta daftar butir Cakupan Materi Ujian yang tampil di halaman Login, Dashboard, dan Laporan.</p>
                 </div>
                 <div class="admin-toolbar-controls">
                   <button type="button" class="btn btn-outline btn-sm" id="btn-reset-syllabus">
@@ -882,21 +1098,52 @@
                 </div>
               </div>
 
-              <div class="form-stack">
+              <div class="syllabus-status-bar" id="syllabus-status-bar">
+                <div class="syllabus-saved-summary">
+                  <span><strong>Tersimpan:</strong> <span id="syllabus-saved-subject">INFORMATIKA</span></span>
+                  <span aria-hidden="true">·</span>
+                  <span class="mono-text" id="syllabus-saved-duration">120 Menit</span>
+                  <span aria-hidden="true">·</span>
+                  <span id="syllabus-saved-topic">Informatika &amp; Ketrampilan Umum Serta Berpikir Komputasional</span>
+                </div>
+                <span class="syllabus-status-badge is-saved" id="syllabus-dirty-badge">Tersimpan</span>
+              </div>
+
+              <form id="admin-syllabus-form" class="form-stack" novalidate>
                 <div class="form-row-2">
                   <div class="form-group">
-                    <label for="admin-set-subject" class="form-label">Mata Pelajaran</label>
-                    <input type="text" id="admin-set-subject" class="form-input" placeholder="INFORMATIKA" />
+                    <label for="admin-set-subject" class="form-label">1. Mata Pelajaran</label>
+                    <input
+                      type="text"
+                      id="admin-set-subject"
+                      class="form-input"
+                      placeholder="Contoh: INFORMATIKA"
+                      required
+                    />
                   </div>
                   <div class="form-group">
-                    <label for="admin-set-duration" class="form-label">Waktu Ujian (Menit)</label>
-                    <input type="number" id="admin-set-duration" class="form-input mono-input" min="5" max="300" />
+                    <label for="admin-set-duration" class="form-label">2. Waktu Ujian (Menit)</label>
+                    <input
+                      type="number"
+                      id="admin-set-duration"
+                      class="form-input mono-input"
+                      min="1"
+                      max="600"
+                      placeholder="Contoh: 120"
+                      required
+                    />
                   </div>
                 </div>
 
                 <div class="form-group">
-                  <label for="admin-set-main-topic" class="form-label">Materi Pokok (Tampil di Dashboard)</label>
-                  <input type="text" id="admin-set-main-topic" class="form-input" />
+                  <label for="admin-set-main-topic" class="form-label">3. Materi Pokok (Tampil di Dashboard &amp; Laporan)</label>
+                  <input
+                    type="text"
+                    id="admin-set-main-topic"
+                    class="form-input"
+                    placeholder="Contoh: Informatika & Ketrampilan Umum Serta Berpikir Komputasional"
+                    required
+                  />
                 </div>
 
                 <div class="card-divider"></div>
@@ -919,7 +1166,16 @@
                     + Tambah Poin Materi
                   </button>
                 </div>
-              </div>
+
+                <div class="syllabus-form-footer">
+                  <button type="button" class="btn btn-outline hidden" id="btn-cancel-syllabus-edit">
+                    Batalkan Perubahan
+                  </button>
+                  <button type="submit" class="btn btn-primary" id="btn-save-syllabus-bottom">
+                    Simpan Perubahan
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
 
