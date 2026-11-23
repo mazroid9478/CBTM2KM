@@ -45,6 +45,7 @@ const DEFAULT_SETTINGS = {
 const EXAM_DURATION_MINUTES = 120;
 const DEFAULT_STUDENT_QUESTION_COUNT = 50;
 const PASSING_GRADE = 75;
+const MAX_EXAM_WARNINGS = 3;
 const ADMIN_PIN = 'mazro123';
 
 const TOPICS = [
@@ -94,6 +95,9 @@ const state = {
   aiGenerating: false,
   aiAbortController: null,
   previousQuestionsBeforeAi: null,
+  examSubmittingLock: false,
+  lastExamViolationAt: 0,
+  examSecurityListenersBound: false,
 };
 
 /* ==================== STORAGE HELPERS ==================== */
@@ -313,6 +317,16 @@ function switchView(viewName) {
   if (viewName === 'result' && !state.adminUnlocked) {
     viewName = state.student ? 'dashboard' : 'login';
   }
+  if (
+    state.currentView === 'exam' &&
+    state.session &&
+    viewName !== 'exam' &&
+    viewName !== 'submitted' &&
+    !(viewName === 'admin' && state.adminUnlocked)
+  ) {
+    showToast('Selesaikan dan kumpulkan ujian terlebih dahulu sebelum keluar dari ruang ujian.', 'error');
+    return;
+  }
 
   state.currentView = viewName;
 
@@ -361,15 +375,17 @@ function updateTopbar() {
 
   const hasStudent = Boolean(state.student);
   const hasSession = Boolean(state.session && state.student && state.session.studentNisn === state.student.nisn);
+  const inActiveExam = state.currentView === 'exam' && hasSession;
 
   navLogin.classList.toggle('hidden', hasStudent);
-  navDashboard.classList.toggle('hidden', !hasStudent);
+  navDashboard.classList.toggle('hidden', !hasStudent || inActiveExam);
   navExam.classList.toggle('hidden', !hasSession);
 
   [navLogin, navDashboard, navExam, navAdmin].forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.nav === state.currentView);
   });
 
+  topbarBtn.classList.toggle('hidden', inActiveExam);
   if (state.currentView === 'admin' || state.currentView === 'result') {
     topbarBtn.textContent = 'Keluar Admin';
   } else if (hasStudent) {
@@ -737,6 +753,15 @@ function bindEvents() {
     if (typeof cb === 'function') cb();
   });
 
+  // Exam Security Warning Modal Action
+  document.getElementById('btn-ack-exam-warning').addEventListener('click', () => {
+    closeModal('modal-exam-warning');
+    requestExamFullscreen();
+  });
+
+  // Initialize anti-new-tab & 3x warning listeners
+  initExamSecurityListeners();
+
   // Window resize redraw charts if in result view
   window.addEventListener('resize', () => {
     if (state.currentView === 'result' && state.activeResult) {
@@ -1035,7 +1060,12 @@ function renderDashboard() {
 
   if (hasActiveSession) {
     const answeredCount = countAnsweredQuestions(state.session);
+    const warnCount = Number(state.session.warningCount || 0);
     document.getElementById('dash-resume-answered').textContent = answeredCount;
+    const warnEl = document.getElementById('dash-resume-warnings');
+    if (warnEl) {
+      warnEl.textContent = warnCount > 0 ? ` · ${warnCount}/${MAX_EXAM_WARNINGS} peringatan` : '';
+    }
     resumeNotice.classList.remove('hidden');
     startLabel.textContent = 'Lanjutkan Tes';
     resetBtn.classList.remove('hidden');
@@ -1075,6 +1105,7 @@ function handleStartOrResumeExam() {
   );
 
   if (hasValidSession) {
+    requestExamFullscreen();
     switchView('exam');
   } else {
     startNewExamSession();
@@ -1098,6 +1129,9 @@ function startNewExamSession() {
   const durationMinutes = state.settings?.durationMinutes || EXAM_DURATION_MINUTES;
   const durationMs = durationMinutes * 60 * 1000;
 
+  state.examSubmittingLock = false;
+  state.lastExamViolationAt = 0;
+
   state.session = {
     studentNama: state.student.nama,
     studentUsername: state.student.username,
@@ -1107,12 +1141,15 @@ function startNewExamSession() {
     answers: {},
     flagged: {},
     currentIndex: 0,
+    warningCount: 0,
+    violations: [],
     startTime: now,
     endTime: now + durationMs,
   };
 
   writeStorage(STORAGE_KEYS.SESSION, state.session);
   syncSessionToMonitoring('Sedang Mengerjakan');
+  requestExamFullscreen();
   switchView('exam');
 }
 
@@ -1151,13 +1188,270 @@ function renderExamView() {
     return switchView('dashboard');
   }
 
+  if (Number(state.session.warningCount || 0) >= MAX_EXAM_WARNINGS && !state.examSubmittingLock) {
+    state.examSubmittingLock = true;
+    finishExam(false, {
+      autoSubmittedByViolation: true,
+      violationReason: 'Batas maksimal 3 kali peringatan telah tercapai.',
+      warningCount: Number(state.session.warningCount || MAX_EXAM_WARNINGS),
+    });
+    return;
+  }
+
   document.getElementById('exam-student-name').textContent = state.student.nama;
   document.getElementById('exam-student-nisn').textContent = `Kelas ${state.student.nisn} · Absen ${state.student.absen || '-'}`;
 
+  updateExamWarningBadge();
   startCountdownTimer();
   renderCurrentQuestion(false);
   renderNavigatorGrid();
   updateExamProgress();
+}
+
+/* ==================== EXAM SECURITY (ANTI-NEW-TAB & 3X WARNING) ==================== */
+function requestExamFullscreen() {
+  try {
+    const docEl = document.documentElement;
+    if (!document.fullscreenElement && typeof docEl?.requestFullscreen === 'function') {
+      const p = docEl.requestFullscreen();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    }
+  } catch {
+    // Abaikan jika browser/iframe membatasi fullscreen otomatis
+  }
+}
+
+function exitExamFullscreen() {
+  try {
+    if (document.fullscreenElement && typeof document.exitFullscreen === 'function') {
+      const p = document.exitFullscreen();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    }
+  } catch {
+    // Abaikan jika gagal keluar fullscreen
+  }
+}
+
+function isExamSecurityActive() {
+  return state.currentView === 'exam' && Boolean(state.session) && Boolean(state.student) && !state.examSubmittingLock;
+}
+
+function isAdminAuthModalOpen() {
+  const modal = document.getElementById('modal-admin-auth');
+  return Boolean(modal && !modal.classList.contains('hidden'));
+}
+
+function updateExamWarningBadge() {
+  const badge = document.getElementById('exam-warning-badge');
+  const textEl = document.getElementById('exam-warning-text');
+  if (!badge || !textEl) return;
+
+  const count = Math.min(MAX_EXAM_WARNINGS, Math.max(0, Number(state.session?.warningCount || 0)));
+  textEl.textContent = `Peringatan: ${count}/${MAX_EXAM_WARNINGS}`;
+  badge.classList.remove('is-warning', 'is-danger');
+  if (count >= MAX_EXAM_WARNINGS) {
+    badge.classList.add('is-danger');
+  } else if (count >= 1) {
+    badge.classList.add('is-warning');
+  }
+}
+
+function showExamWarningModal(warningNumber, reasonText) {
+  const modal = document.getElementById('modal-exam-warning');
+  const card = modal?.querySelector('.exam-warning-modal');
+  const pill = document.getElementById('modal-exam-warning-pill');
+  const titleEl = document.getElementById('modal-exam-warning-title');
+  const reasonEl = document.getElementById('modal-exam-warning-reason');
+  const noteEl = document.getElementById('modal-exam-warning-note');
+  if (!modal || !pill || !titleEl || !reasonEl || !noteEl) return;
+
+  const remaining = Math.max(0, MAX_EXAM_WARNINGS - warningNumber);
+  const isSecondWarning = warningNumber === MAX_EXAM_WARNINGS - 1;
+
+  if (card) card.classList.toggle('is-critical', isSecondWarning);
+  pill.textContent = `Peringatan ${warningNumber} dari ${MAX_EXAM_WARNINGS}`;
+  titleEl.textContent = isSecondWarning
+    ? 'Peringatan Keras Terakhir!'
+    : 'Dilarang Membuka Tab Baru';
+  reasonEl.textContent = reasonText || 'Terdeteksi upaya membuka tab baru atau meninggalkan ruang ujian.';
+  noteEl.innerHTML = isSecondWarning
+    ? `<strong>Sisa kesempatan: ${remaining} kali lagi.</strong> Jika Anda membuka tab baru atau meninggalkan layar ujian 1 kali lagi, ujian akan otomatis dihentikan dan jawaban langsung dikumpulkan.`
+    : `Sisa kesempatan peringatan: <strong>${remaining} kali lagi</strong>. Pada peringatan ke-${MAX_EXAM_WARNINGS}, ujian otomatis dihentikan dan jawaban langsung dikumpulkan.`;
+
+  openModal('modal-exam-warning');
+}
+
+function registerExamViolation(reason) {
+  if (!isExamSecurityActive() || isAdminAuthModalOpen()) return;
+
+  const now = Date.now();
+  if (now - state.lastExamViolationAt < 1500) {
+    return;
+  }
+  state.lastExamViolationAt = now;
+
+  if (!Array.isArray(state.session.violations)) {
+    state.session.violations = [];
+  }
+
+  const nextCount = Number(state.session.warningCount || 0) + 1;
+  state.session.warningCount = nextCount;
+  state.session.violations.push({
+    count: nextCount,
+    reason,
+    timestamp: new Date().toISOString(),
+  });
+
+  writeStorage(STORAGE_KEYS.SESSION, state.session);
+  syncSessionToMonitoring('Sedang Mengerjakan');
+  updateExamWarningBadge();
+
+  if (nextCount >= MAX_EXAM_WARNINGS) {
+    state.examSubmittingLock = true;
+    closeModal('modal-exam-warning');
+    closeModal('modal-confirm');
+    finishExam(false, {
+      autoSubmittedByViolation: true,
+      violationReason: reason,
+      warningCount: nextCount,
+    });
+  } else {
+    showExamWarningModal(nextCount, reason);
+  }
+}
+
+function initExamSecurityListeners() {
+  if (state.examSecurityListenersBound) return;
+  state.examSecurityListenersBound = true;
+
+  if (typeof window.open === 'function') {
+    const nativeWindowOpen = window.open.bind(window);
+    window.open = function (...args) {
+      if (isExamSecurityActive()) {
+        registerExamViolation('Upaya membuka tab atau jendela baru diblokir oleh sistem ujian.');
+        return null;
+      }
+      return nativeWindowOpen(...args);
+    };
+  }
+
+  document.addEventListener('contextmenu', (e) => {
+    if (!isExamSecurityActive()) return;
+    e.preventDefault();
+  });
+
+  document.addEventListener(
+    'auxclick',
+    (e) => {
+      if (!isExamSecurityActive()) return;
+      if (e.button === 1) {
+        e.preventDefault();
+        e.stopPropagation();
+        registerExamViolation('Upaya membuka tab baru (klik tengah mouse) diblokir sistem.');
+      }
+    },
+    true
+  );
+
+  document.addEventListener(
+    'click',
+    (e) => {
+      if (!isExamSecurityActive()) return;
+      const anchor = e.target?.closest?.('a');
+      if (anchor && (anchor.target === '_blank' || e.ctrlKey || e.metaKey || e.shiftKey)) {
+        e.preventDefault();
+        e.stopPropagation();
+        registerExamViolation('Upaya membuka tautan di tab atau jendela baru diblokir sistem.');
+      }
+    },
+    true
+  );
+
+  document.addEventListener(
+    'keydown',
+    (e) => {
+      if (!isExamSecurityActive() || isAdminAuthModalOpen()) return;
+      const key = String(e.key || '').toLowerCase();
+      const mod = e.ctrlKey || e.metaKey;
+
+      if (mod && key === 't') {
+        e.preventDefault();
+        e.stopPropagation();
+        registerExamViolation('Upaya membuka tab baru (Ctrl/Cmd + T) diblokir sistem.');
+        return;
+      }
+
+      if (mod && key === 'n') {
+        e.preventDefault();
+        e.stopPropagation();
+        registerExamViolation('Upaya membuka jendela baru (Ctrl/Cmd + N) diblokir sistem.');
+        return;
+      }
+
+      if (mod && e.shiftKey && key === 't') {
+        e.preventDefault();
+        e.stopPropagation();
+        registerExamViolation('Upaya membuka kembali tab (Ctrl/Cmd + Shift + T) diblokir sistem.');
+        return;
+      }
+
+      if (mod && key === 'w') {
+        e.preventDefault();
+        e.stopPropagation();
+        registerExamViolation('Upaya menutup tab ujian (Ctrl/Cmd + W) diblokir sistem.');
+        return;
+      }
+
+      if ((e.ctrlKey && key === 'tab') || (e.ctrlKey && (key === 'pageup' || key === 'pagedown'))) {
+        e.preventDefault();
+        e.stopPropagation();
+        registerExamViolation('Upaya berpindah tab browser diblokir sistem.');
+        return;
+      }
+
+      if ((mod && key === 'l') || (e.altKey && key === 'd') || key === 'f6') {
+        e.preventDefault();
+        e.stopPropagation();
+        registerExamViolation('Akses bilah alamat untuk membuka tab baru diblokir selama ujian.');
+        return;
+      }
+
+      if (
+        key === 'f12' ||
+        (mod && e.shiftKey && (key === 'i' || key === 'j' || key === 'c')) ||
+        (mod && key === 'u')
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        showToast('Akses inspeksi halaman dinonaktifkan selama ujian berlangsung.', 'error');
+      }
+    },
+    true
+  );
+
+  document.addEventListener('visibilitychange', () => {
+    if (!isExamSecurityActive() || isAdminAuthModalOpen()) return;
+    if (document.visibilityState === 'hidden') {
+      registerExamViolation('Terdeteksi membuka tab baru atau meninggalkan tab ujian.');
+    }
+  });
+
+  window.addEventListener('blur', () => {
+    if (!isExamSecurityActive() || isAdminAuthModalOpen()) return;
+    setTimeout(() => {
+      if (!isExamSecurityActive() || isAdminAuthModalOpen()) return;
+      if (document.hidden || !document.hasFocus()) {
+        registerExamViolation('Terdeteksi berpindah keluar dari jendela ujian atau membuka tab baru.');
+      }
+    }, 160);
+  });
+
+  window.addEventListener('beforeunload', (e) => {
+    if (isExamSecurityActive()) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
 }
 
 function startCountdownTimer() {
@@ -1494,13 +1788,20 @@ function formatAnswerDisplay(question, ans) {
   return String(ans);
 }
 
-function finishExam(isAutoTimeout = false) {
+function finishExam(isAutoTimeout = false, securityMeta = null) {
   if (state.timerIntervalId) {
     clearInterval(state.timerIntervalId);
     state.timerIntervalId = null;
   }
 
-  if (!state.session || !state.student) return;
+  if (!state.session || !state.student) {
+    state.examSubmittingLock = false;
+    return;
+  }
+
+  const warningCount = Number(state.session.warningCount || securityMeta?.warningCount || 0);
+  const autoSubmittedByViolation = Boolean(securityMeta?.autoSubmittedByViolation);
+  const violationReason = securityMeta?.violationReason || '';
 
   const orderedQuestions = getSessionQuestions();
   const totalQuestions = orderedQuestions.length;
@@ -1562,6 +1863,8 @@ function finishExam(isAutoTimeout = false) {
     totalQuestions,
     percentage,
     status,
+    warningCount,
+    autoSubmittedByViolation,
     completedAt: new Date().toISOString(),
     topicStats,
     details,
@@ -1581,6 +1884,8 @@ function finishExam(isAutoTimeout = false) {
     percentage: completedPct,
     currentNumber: totalQuestions,
     flaggedCount: Object.keys(state.session.flagged || {}).length,
+    warningCount,
+    terminatedByViolation: autoSubmittedByViolation,
     completedAt: resultRecord.completedAt,
     lastActivityAt: Date.now(),
   });
@@ -1596,6 +1901,9 @@ function finishExam(isAutoTimeout = false) {
     answeredCount,
     totalQuestions: resultRecord.totalQuestions,
     completedAt: resultRecord.completedAt,
+    warningCount,
+    autoSubmittedByViolation,
+    violationReason,
   };
 
   // Clear active exam session
@@ -1604,11 +1912,15 @@ function finishExam(isAutoTimeout = false) {
   state.activeResult = null;
   state.resultOpenedFromAdmin = false;
   state.resultFilter = 'all';
+  state.examSubmittingLock = false;
+  exitExamFullscreen();
 
   // Auto-stop token if all students have finished
   evaluateTokenAutoStop();
 
-  if (isAutoTimeout) {
+  if (autoSubmittedByViolation) {
+    showToast('Peringatan ke-3 tercapai! Ujian dihentikan otomatis dan jawaban langsung dikumpulkan.', 'error');
+  } else if (isAutoTimeout) {
     showToast('Waktu ujian habis! Jawaban Anda berhasil dikirim ke Portal Admin.', 'error');
   } else {
     showToast('Ujian selesai! Jawaban Anda berhasil dikumpulkan.', 'success');
@@ -1623,6 +1935,34 @@ function renderSubmittedView() {
 
   const subject = sub.subject || state.settings?.subject || DEFAULT_SETTINGS.subject;
   const mainTopic = sub.mainTopic || state.settings?.mainTopic || DEFAULT_SETTINGS.mainTopic;
+
+  const headingEl = document.getElementById('submitted-heading');
+  const subtitleEl = document.querySelector('#view-submitted .submitted-subtitle');
+  const noticeEl = document.querySelector('#view-submitted .submitted-notice');
+
+  if (sub.autoSubmittedByViolation) {
+    if (headingEl) headingEl.textContent = 'Ujian Dihentikan Otomatis (3/3 Peringatan)';
+    if (subtitleEl) {
+      subtitleEl.textContent =
+        'Sistem mendeteksi pelanggaran membuka tab baru atau meninggalkan ruang ujian sebanyak 3 kali. Jawaban terakhir Anda telah otomatis disimpan.';
+    }
+    if (noticeEl) {
+      noticeEl.classList.add('is-danger');
+      noticeEl.textContent =
+        'Ujian dihentikan otomatis oleh sistem pengawasan karena telah mencapai batas maksimal 3x peringatan.';
+    }
+  } else {
+    if (headingEl) headingEl.textContent = 'Ujian Telah Diselesaikan';
+    if (subtitleEl) {
+      subtitleEl.textContent =
+        'Terima kasih, jawaban Anda telah berhasil disimpan dan direkam ke sistem evaluasi.';
+    }
+    if (noticeEl) {
+      noticeEl.classList.remove('is-danger');
+      noticeEl.textContent =
+        'Selamat Ananda Telah Menyelesaikan Ujian CBT Online. Semoga Mendapatkan Nilai Hasil Terbaik. Aamiin.';
+    }
+  }
 
   document.getElementById('sub-nama').textContent = sub.nama;
   document.getElementById('sub-nisn').textContent = sub.nisn;
@@ -2713,6 +3053,7 @@ function syncSessionToMonitoring(statusLabel = 'Sedang Mengerjakan') {
     percentage: pct,
     currentNumber: (state.session.currentIndex || 0) + 1,
     flaggedCount: Object.keys(state.session.flagged || {}).length,
+    warningCount: Number(state.session.warningCount || 0),
     startTime: state.session.startTime,
     endTime: state.session.endTime,
     lastActivityAt: Date.now(),
@@ -2780,6 +3121,7 @@ function getMergedMonitoringRecords() {
       percentage: pct,
       currentNumber: (activeSession.currentIndex || 0) + 1,
       flaggedCount: Object.keys(activeSession.flagged || {}).length,
+      warningCount: Number(activeSession.warningCount || 0),
       startTime: activeSession.startTime,
       endTime: activeSession.endTime,
     };
@@ -2916,6 +3258,12 @@ function renderAdminMonitoringTable() {
           })
         : '-';
 
+      const warnCount = Number(item.warningCount || 0);
+      const warnTag =
+        warnCount > 0
+          ? `<span class="mon-student-sub">Peringatan: ${Math.min(MAX_EXAM_WARNINGS, warnCount)}/${MAX_EXAM_WARNINGS}${item.terminatedByViolation ? ' (Auto-Selesai)' : ''}</span>`
+          : '';
+
       return `
         <tr>
           <td class="mono-text">${idx + 1}</td>
@@ -2925,7 +3273,10 @@ function renderAdminMonitoringTable() {
           </td>
           <td class="mono-text">${escapeHtml(item.nisn)}</td>
           <td class="mono-text">${escapeHtml(item.absen || '-')}</td>
-          <td><span class="${statusClass}">${escapeHtml(item.status)}</span></td>
+          <td>
+            <span class="${statusClass}">${escapeHtml(item.status)}</span>
+            ${warnTag}
+          </td>
           <td class="mono-text"><strong>${answered}</strong> / ${total} Soal</td>
           <td>
             <div class="mon-progress-cell">

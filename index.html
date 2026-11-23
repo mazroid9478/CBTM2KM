@@ -276,10 +276,10 @@
               </div>
 
               <ul class="rules-list">
-                
                 <li>Setiap jawaban yang Anda pilih langsung tersimpan otomatis di perangkat.</li>
                 <li>Anda dapat berpindah bebas antar nomor soal melalui tombol navigasi atau panel nomor.</li>
-                
+                <li><strong>Anti-Tab Baru Aktif:</strong> Saat mengerjakan ujian, siswa dilarang membuka tab baru, jendela baru, atau meninggalkan halaman ujian.</li>
+                <li><strong>Batas Peringatan 3x:</strong> Sistem mencatat pelanggaran hingga 3 kali peringatan. Pada peringatan ke-3, ujian otomatis dihentikan dan jawaban langsung dikumpulkan.</li>
               </ul>
 
               <div id="dash-completed-notice" class="resume-notice hidden">
@@ -290,7 +290,7 @@
 
               <div id="dash-resume-notice" class="resume-notice hidden">
                 <p>
-                  Ditemukan sesi ujian yang belum selesai (<strong id="dash-resume-answered">0</strong> soal terjawab). Anda dapat melanjutkan sesi tersebut atau memulai ulang dari awal.
+                  Ditemukan sesi ujian yang belum selesai (<strong id="dash-resume-answered">0</strong> soal terjawab<span id="dash-resume-warnings"></span>). Anda dapat melanjutkan sesi tersebut atau memulai ulang dari awal.
                 </p>
               </div>
 
@@ -330,6 +330,12 @@
             </div>
 
             <div class="exam-bar-right">
+              <div class="exam-warning-badge" id="exam-warning-badge" aria-live="polite" title="Batas peringatan membuka tab baru atau meninggalkan ujian">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span class="tabular-nums" id="exam-warning-text">Peringatan: 0/3</span>
+              </div>
               <div class="timer-box" id="exam-timer-box" aria-live="polite">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <circle cx="12" cy="12" r="10"></circle>
@@ -1531,6 +1537,36 @@
         <div class="modal-actions">
           <button type="button" class="btn btn-outline" id="btn-confirm-cancel">Batal</button>
           <button type="button" class="btn btn-primary" id="btn-confirm-ok">Lanjutkan</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MODAL: EXAM SECURITY WARNING (3x STRIKES) ==================== -->
+    <div class="modal-backdrop hidden" id="modal-exam-warning" role="alertdialog" aria-modal="true" aria-labelledby="modal-exam-warning-title">
+      <div class="modal-card modal-sm exam-warning-modal">
+        <div class="exam-warning-modal-head">
+          <div class="exam-warning-icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </div>
+          <div>
+            <span class="exam-warning-count-pill tabular-nums" id="modal-exam-warning-pill">Peringatan 1 dari 3</span>
+            <h2 class="modal-title" id="modal-exam-warning-title">Dilarang Membuka Tab Baru</h2>
+          </div>
+        </div>
+        <p class="confirm-message" id="modal-exam-warning-reason">
+          Terdeteksi upaya membuka tab baru atau meninggalkan layar ujian.
+        </p>
+        <div class="exam-warning-note" id="modal-exam-warning-note">
+          Sisa kesempatan peringatan: <strong>2 kali lagi</strong>. Pada peringatan ke-3, ujian akan otomatis dihentikan dan jawaban langsung dikumpulkan.
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-primary btn-full" id="btn-ack-exam-warning">
+            Saya Mengerti &amp; Kembali ke Ujian
+          </button>
         </div>
       </div>
     </div>
